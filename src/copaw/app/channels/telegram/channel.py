@@ -498,7 +498,14 @@ class TelegramChannel(BaseChannel):
         bot = self._application.bot
         if not bot:
             return
-        chunks = self._chunk_text(text)
+        message_thread_id = meta.get("message_thread_id")
+        
+        # 停止之前的 typing 指示器
+        self._stop_typing(chat_id)
+        
+        # 转换 Markdown 为 Telegram HTML
+        html_text = convert_markdown_to_telegram_html(text)
+        chunks = self._chunk_text(html_text)
         for chunk in chunks:
             try:
                 if message_thread_id:
@@ -547,6 +554,9 @@ class TelegramChannel(BaseChannel):
 
         # Get message_thread_id from meta for replying to specific topic
         message_thread_id = meta.get("message_thread_id")
+        
+        # 停止 typing 指示器
+        self._stop_typing(chat_id)
 
         part_type = getattr(part, "type", None)
         try:

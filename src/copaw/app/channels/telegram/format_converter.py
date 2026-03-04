@@ -78,6 +78,25 @@ def convert_markdown_to_telegram_html(text: str) -> str:
             converted_lines.append('──────────')
             continue
         
+        # 2.5. 处理 Markdown 表格
+        if re.match(r'^\|.*\|$', line.strip()):
+            # 检测是否是表格分隔行 (|---|---|)
+            if re.match(r'^\|[\s\-:|]+\|$', line.strip()):
+                # 将上一行（表格第一行）从数据行格式改为表头格式
+                if converted_lines and converted_lines[-1].startswith('• '):
+                    prev_data = converted_lines[-1][2:]  # 移除 "• "
+                    header_cells = prev_data.split(' | ')
+                    header_str = ' | '.join(f'<b>{cell}</b>' for cell in header_cells)
+                    converted_lines[-1] = f'📋 {header_str}'
+                continue
+            
+            # 数据行
+            cells = [cell.strip() for cell in line.split('|')[1:-1]]
+            if cells:
+                data_str = ' | '.join(cell for cell in cells if cell)
+                converted_lines.append(f'• {data_str}')
+            continue
+        
         # 3. 处理引用 (> )
         if line.startswith('> '):
             quote = line[2:].strip()
