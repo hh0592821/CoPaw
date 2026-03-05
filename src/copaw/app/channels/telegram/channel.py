@@ -525,12 +525,14 @@ class TelegramChannel(BaseChannel):
                     )
                 else:
                     await bot.send_message(
-                        chat_id=chat_id, text=chunk, parse_mode="HTML"
+                        chat_id=chat_id,
+                        text=chunk,
+                        parse_mode="HTML",
                     )
             except telegram.error.BadRequest as e:
                 # HTML 解析失败，回退到纯文本
                 logger.warning(
-                    f"HTML parse failed, sending as plain text: {e}"
+                    f"HTML parse failed, sending as plain text: {e}",
                 )
                 if message_thread_id:
                     await bot.send_message(
@@ -586,7 +588,9 @@ class TelegramChannel(BaseChannel):
                             )
                         else:
                             await bot.send_photo(
-                                chat_id=chat_id, photo=f, parse_mode="Markdown"
+                                chat_id=chat_id,
+                                photo=f,
+                                parse_mode="Markdown",
                             )
                 elif image_url:
                     if message_thread_id:
@@ -616,7 +620,9 @@ class TelegramChannel(BaseChannel):
                             )
                         else:
                             await bot.send_video(
-                                chat_id=chat_id, video=f, parse_mode="Markdown"
+                                chat_id=chat_id,
+                                video=f,
+                                parse_mode="Markdown",
                             )
                 elif video_url:
                     if message_thread_id:
@@ -644,7 +650,9 @@ class TelegramChannel(BaseChannel):
                         )
                     else:
                         await bot.send_audio(
-                            chat_id=chat_id, audio=data, parse_mode="Markdown"
+                            chat_id=chat_id,
+                            audio=data,
+                            parse_mode="Markdown",
                         )
             elif part_type == ContentType.FILE:
                 file_url = getattr(part, "file_url", None)
