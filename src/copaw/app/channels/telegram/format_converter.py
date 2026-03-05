@@ -88,9 +88,6 @@ def convert_markdown_to_telegram_html(text: str) -> str:
     for line in lines:
         # 1. 代码块检测（检测行中任意位置的 ```）
         if "```" in line:
-            # 统计 ``` 的数量
-            backtick_count = line.count("```")
-
             if in_code_block:
                 # 在代码块内，遇到 ``` 表示结束
                 code_line = line.split("```")[0]
@@ -169,8 +166,6 @@ def convert_markdown_to_telegram_html(text: str) -> str:
             code_block_content.append(line)
             continue
 
-        original_line = line
-
         # 2. 标题处理（支持行中任意位置，如 "[TG_bot]  ## 标题"）
         title_match = re.search(r"(######?|#####|####|###|##|#)\s+(.+)", line)
         if title_match:
@@ -210,16 +205,22 @@ def convert_markdown_to_telegram_html(text: str) -> str:
                     # 删除线
                     if "~~" in cell_line:
                         cell_line = re.sub(
-                            r"~~(.+?)~~", r"<s>\1</s>", cell_line
+                            r"~~(.+?)~~",
+                            r"<s>\1</s>",
+                            cell_line,
                         )
                     # 粗体
                     if "**" in cell_line:
                         cell_line = re.sub(
-                            r"\*\*(.+?)\*\*", r"<b>\1</b>", cell_line
+                            r"\*\*(.+?)\*\*",
+                            r"<b>\1</b>",
+                            cell_line,
                         )
                     if "__" in cell_line:
                         cell_line = re.sub(
-                            r"__(.+?)__", r"<b>\1</b>", cell_line
+                            r"__(.+?)__",
+                            r"<b>\1</b>",
+                            cell_line,
                         )
                     # 斜体
                     cell_line = re.sub(
@@ -235,7 +236,9 @@ def convert_markdown_to_telegram_html(text: str) -> str:
                     # 行内代码
                     if "`" in cell_line:
                         cell_line = re.sub(
-                            r"`(.+?)`", r"<code>\1</code>", cell_line
+                            r"`(.+?)`",
+                            r"<code>\1</code>",
+                            cell_line,
                         )
                     # 链接
                     if re.search(r"\[.+?\]\(.+?\)", cell_line):
@@ -276,10 +279,14 @@ def convert_markdown_to_telegram_html(text: str) -> str:
 
         # 7.3 斜体（在粗体之后，避免冲突）
         line = re.sub(
-            r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<i>\1</i>", line
+            r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)",
+            r"<i>\1</i>",
+            line,
         )
         line = re.sub(
-            r"(?<![a-zA-Z0-9_])_(.+?)_(?![a-zA-Z0-9_])", r"<i>\1</i>", line
+            r"(?<![a-zA-Z0-9_])_(.+?)_(?![a-zA-Z0-9_])",
+            r"<i>\1</i>",
+            line,
         )
 
         # 7.4 行内代码
