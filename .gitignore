@@ -15,8 +15,11 @@ cookbook/_build
 # production
 /build
 dist/
+assets/
+
 # Console frontend build (generated in Docker/CI, do not commit)
 src/copaw/console/dist/
+/src/copaw/console/assets/
 
 # frontend (website)
 website/node_modules/
