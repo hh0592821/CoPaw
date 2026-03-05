@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Telegram 格式转换器 V2
 将标准 Markdown 格式转换为 Telegram HTML 格式
@@ -52,7 +53,7 @@ def convert_markdown_to_telegram_html(text: str) -> str:
         nonlocal in_blockquote, blockquote_lines
         if in_blockquote and blockquote_lines:
             converted_lines.append(
-                f"<blockquote>{'\n'.join(blockquote_lines)}</blockquote>"
+                f"<blockquote>{'\n'.join(blockquote_lines)}</blockquote>",
             )
             blockquote_lines = []
             in_blockquote = False
@@ -76,7 +77,9 @@ def convert_markdown_to_telegram_html(text: str) -> str:
                 # 支持单列表格（无制表符）
                 if "\t" in prev:
                     cells = prev.split("\t")
-                    converted_lines[-1] = "\t".join(f"<b>{cell}</b>" for cell in cells)
+                    converted_lines[-1] = "\t".join(
+                        f"<b>{cell}</b>" for cell in cells
+                    )
                 else:
                     # 单列情况
                     converted_lines[-1] = f"<b>{prev}</b>"
@@ -111,12 +114,16 @@ def convert_markdown_to_telegram_html(text: str) -> str:
                     # 删除线
                     if "~~" in processed_before:
                         processed_before = re.sub(
-                            r"~~(.+?)~~", r"<s>\1</s>", processed_before
+                            r"~~(.+?)~~",
+                            r"<s>\1</s>",
+                            processed_before,
                         )
                     # 粗体
                     if "**" in processed_before:
                         processed_before = re.sub(
-                            r"\*\*(.+?)\*\*", r"<b>\1</b>", processed_before
+                            r"\*\*(.+?)\*\*",
+                            r"<b>\1</b>",
+                            processed_before,
                         )
                     # 斜体
                     processed_before = re.sub(
@@ -127,7 +134,9 @@ def convert_markdown_to_telegram_html(text: str) -> str:
                     # 行内代码
                     if "`" in processed_before:
                         processed_before = re.sub(
-                            r"`(.+?)`", r"<code>\1</code>", processed_before
+                            r"`(.+?)`",
+                            r"<code>\1</code>",
+                            processed_before,
                         )
                     # 链接
                     if re.search(r"\[.+?\]\(.+?\)", processed_before):
@@ -200,15 +209,23 @@ def convert_markdown_to_telegram_html(text: str) -> str:
                     cell_line = cell
                     # 删除线
                     if "~~" in cell_line:
-                        cell_line = re.sub(r"~~(.+?)~~", r"<s>\1</s>", cell_line)
+                        cell_line = re.sub(
+                            r"~~(.+?)~~", r"<s>\1</s>", cell_line
+                        )
                     # 粗体
                     if "**" in cell_line:
-                        cell_line = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", cell_line)
+                        cell_line = re.sub(
+                            r"\*\*(.+?)\*\*", r"<b>\1</b>", cell_line
+                        )
                     if "__" in cell_line:
-                        cell_line = re.sub(r"__(.+?)__", r"<b>\1</b>", cell_line)
+                        cell_line = re.sub(
+                            r"__(.+?)__", r"<b>\1</b>", cell_line
+                        )
                     # 斜体
                     cell_line = re.sub(
-                        r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<i>\1</i>", cell_line
+                        r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)",
+                        r"<i>\1</i>",
+                        cell_line,
                     )
                     cell_line = re.sub(
                         r"(?<![a-zA-Z0-9_])_(.+?)_(?![a-zA-Z0-9_])",
@@ -217,11 +234,15 @@ def convert_markdown_to_telegram_html(text: str) -> str:
                     )
                     # 行内代码
                     if "`" in cell_line:
-                        cell_line = re.sub(r"`(.+?)`", r"<code>\1</code>", cell_line)
+                        cell_line = re.sub(
+                            r"`(.+?)`", r"<code>\1</code>", cell_line
+                        )
                     # 链接
                     if re.search(r"\[.+?\]\(.+?\)", cell_line):
                         cell_line = re.sub(
-                            r"\[(.+?)\]\((.+?)\)", r'<a href="\2">\1</a>', cell_line
+                            r"\[(.+?)\]\((.+?)\)",
+                            r'<a href="\2">\1</a>',
+                            cell_line,
                         )
                     processed_cells.append(cell_line)
                 converted_lines.append("\t".join(processed_cells))
@@ -254,8 +275,12 @@ def convert_markdown_to_telegram_html(text: str) -> str:
             line = re.sub(r"__(.+?)__", r"<b>\1</b>", line)
 
         # 7.3 斜体（在粗体之后，避免冲突）
-        line = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<i>\1</i>", line)
-        line = re.sub(r"(?<![a-zA-Z0-9_])_(.+?)_(?![a-zA-Z0-9_])", r"<i>\1</i>", line)
+        line = re.sub(
+            r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"<i>\1</i>", line
+        )
+        line = re.sub(
+            r"(?<![a-zA-Z0-9_])_(.+?)_(?![a-zA-Z0-9_])", r"<i>\1</i>", line
+        )
 
         # 7.4 行内代码
         if "`" in line:
