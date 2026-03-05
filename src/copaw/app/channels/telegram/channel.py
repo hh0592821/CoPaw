@@ -160,7 +160,11 @@ async def _build_content_parts_from_message(
             )
             if local_path:
                 # Convert local path to file:// URL for LLM compatibility
-                file_url = f"file://{local_path}" if not local_path.startswith("file://") else local_path
+                file_url = (
+                    f"file://{local_path}"
+                    if not local_path.startswith("file://")
+                    else local_path
+                )
                 content_parts.append(
                     ImageContent(type=ContentType.IMAGE, image_url=file_url),
                 )
@@ -181,7 +185,11 @@ async def _build_content_parts_from_message(
         )
         if local_path:
             # Convert local path to file:// URL for LLM compatibility
-            file_url = f"file://{local_path}" if not local_path.startswith("file://") else local_path
+            file_url = (
+                f"file://{local_path}"
+                if not local_path.startswith("file://")
+                else local_path
+            )
             content_parts.append(
                 content_cls(type=content_type, **{url_field: file_url}),
             )
@@ -499,10 +507,10 @@ class TelegramChannel(BaseChannel):
         if not bot:
             return
         message_thread_id = meta.get("message_thread_id")
-        
+
         # 停止之前的 typing 指示器
         self._stop_typing(chat_id)
-        
+
         # 转换 Markdown 为 Telegram HTML
         html_text = convert_markdown_to_telegram_html(text)
         chunks = self._chunk_text(html_text)
@@ -516,10 +524,14 @@ class TelegramChannel(BaseChannel):
                         parse_mode="HTML",
                     )
                 else:
-                    await bot.send_message(chat_id=chat_id, text=chunk, parse_mode="HTML")
+                    await bot.send_message(
+                        chat_id=chat_id, text=chunk, parse_mode="HTML"
+                    )
             except telegram.error.BadRequest as e:
                 # HTML 解析失败，回退到纯文本
-                logger.warning(f"HTML parse failed, sending as plain text: {e}")
+                logger.warning(
+                    f"HTML parse failed, sending as plain text: {e}"
+                )
                 if message_thread_id:
                     await bot.send_message(
                         chat_id=chat_id,
@@ -554,7 +566,7 @@ class TelegramChannel(BaseChannel):
 
         # Get message_thread_id from meta for replying to specific topic
         message_thread_id = meta.get("message_thread_id")
-        
+
         # 停止 typing 指示器
         self._stop_typing(chat_id)
 
@@ -573,7 +585,9 @@ class TelegramChannel(BaseChannel):
                                 parse_mode="Markdown",
                             )
                         else:
-                            await bot.send_photo(chat_id=chat_id, photo=f, parse_mode="Markdown")
+                            await bot.send_photo(
+                                chat_id=chat_id, photo=f, parse_mode="Markdown"
+                            )
                 elif image_url:
                     if message_thread_id:
                         await bot.send_photo(
@@ -583,7 +597,11 @@ class TelegramChannel(BaseChannel):
                             parse_mode="Markdown",
                         )
                     else:
-                        await bot.send_photo(chat_id=chat_id, photo=image_url, parse_mode="Markdown")
+                        await bot.send_photo(
+                            chat_id=chat_id,
+                            photo=image_url,
+                            parse_mode="Markdown",
+                        )
             elif part_type == ContentType.VIDEO:
                 video_url = getattr(part, "video_url", None)
                 if video_url and video_url.startswith("file://"):
@@ -597,7 +615,9 @@ class TelegramChannel(BaseChannel):
                                 parse_mode="Markdown",
                             )
                         else:
-                            await bot.send_video(chat_id=chat_id, video=f, parse_mode="Markdown")
+                            await bot.send_video(
+                                chat_id=chat_id, video=f, parse_mode="Markdown"
+                            )
                 elif video_url:
                     if message_thread_id:
                         await bot.send_video(
@@ -607,7 +627,11 @@ class TelegramChannel(BaseChannel):
                             parse_mode="Markdown",
                         )
                     else:
-                        await bot.send_video(chat_id=chat_id, video=video_url, parse_mode="Markdown")
+                        await bot.send_video(
+                            chat_id=chat_id,
+                            video=video_url,
+                            parse_mode="Markdown",
+                        )
             elif part_type == ContentType.AUDIO:
                 data = getattr(part, "data", None)
                 if data:
@@ -619,7 +643,9 @@ class TelegramChannel(BaseChannel):
                             parse_mode="Markdown",
                         )
                     else:
-                        await bot.send_audio(chat_id=chat_id, audio=data, parse_mode="Markdown")
+                        await bot.send_audio(
+                            chat_id=chat_id, audio=data, parse_mode="Markdown"
+                        )
             elif part_type == ContentType.FILE:
                 file_url = getattr(part, "file_url", None)
                 if file_url and file_url.startswith("file://"):
@@ -633,7 +659,11 @@ class TelegramChannel(BaseChannel):
                                 parse_mode="Markdown",
                             )
                         else:
-                            await bot.send_document(chat_id=chat_id, document=f, parse_mode="Markdown")
+                            await bot.send_document(
+                                chat_id=chat_id,
+                                document=f,
+                                parse_mode="Markdown",
+                            )
                 elif file_url:
                     if message_thread_id:
                         await bot.send_document(
@@ -643,7 +673,11 @@ class TelegramChannel(BaseChannel):
                             parse_mode="Markdown",
                         )
                     else:
-                        await bot.send_document(chat_id=chat_id, document=file_url, parse_mode="Markdown")
+                        await bot.send_document(
+                            chat_id=chat_id,
+                            document=file_url,
+                            parse_mode="Markdown",
+                        )
         except Exception:
             logger.exception("telegram send_media failed")
 
