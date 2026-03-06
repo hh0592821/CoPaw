@@ -324,6 +324,93 @@ def agentscope_msg_to_message(
 
                 cb.complete()
 
+            elif btype == "video":
+                # Create/continue MESSAGE type with video
+                if current_type != MessageType.MESSAGE:
+                    if current_mb:
+                        current_mb.complete()
+                        results.append(current_mb.get_message_data())
+                    rb = ResponseBuilder()
+                    current_mb = rb.create_message_builder(
+                        role=role,
+                        message_type=MessageType.MESSAGE,
+                    )
+                    # add meta field to store old id and name
+                    current_mb.message.metadata = {
+                        "original_id": msg.id,
+                        "original_name": msg.name,
+                        "metadata": msg.metadata,
+                    }
+                    current_type = MessageType.MESSAGE
+                cb = current_mb.create_content_builder(content_type="video")
+
+                if (
+                    isinstance(block.get("source"), dict)
+                    and block.get("source", {}).get("type") == "url"
+                ):
+                    cb.set_video_url(block.get("source", {}).get("url"))
+
+                elif (
+                    isinstance(block.get("source"), dict)
+                    and block.get("source").get("type") == "base64"
+                ):
+                    media_type = block.get("source", {}).get(
+                        "media_type",
+                        "video/mp4",
+                    )
+                    base64_data = block.get("source", {}).get("data", "")
+                    url = f"data:{media_type};base64,{base64_data}"
+                    cb.set_video_url(url)
+
+                cb.complete()
+
+            elif btype == "file":
+                # Create/continue MESSAGE type with file
+                if current_type != MessageType.MESSAGE:
+                    if current_mb:
+                        current_mb.complete()
+                        results.append(current_mb.get_message_data())
+                    rb = ResponseBuilder()
+                    current_mb = rb.create_message_builder(
+                        role=role,
+                        message_type=MessageType.MESSAGE,
+                    )
+                    # add meta field to store old id and name
+                    current_mb.message.metadata = {
+                        "original_id": msg.id,
+                        "original_name": msg.name,
+                        "metadata": msg.metadata,
+                    }
+                    current_type = MessageType.MESSAGE
+                cb = current_mb.create_content_builder(content_type="file")
+
+                if (
+                    isinstance(block.get("source"), dict)
+                    and block.get("source", {}).get("type") == "url"
+                ):
+                    url = block.get("source", {}).get("url")
+                    filename = block.get("filename")
+                    cb.content.file_url = url
+                    if filename:
+                        cb.content.filename = filename
+
+                elif (
+                    isinstance(block.get("source"), dict)
+                    and block.get("source").get("type") == "base64"
+                ):
+                    media_type = block.get("source", {}).get(
+                        "media_type",
+                        "application/octet-stream",
+                    )
+                    base64_data = block.get("source", {}).get("data", "")
+                    url = f"data:{media_type};base64,{base64_data}"
+                    filename = block.get("filename")
+                    cb.content.file_url = url
+                    if filename:
+                        cb.content.filename = filename
+
+                cb.complete()
+
             else:
                 # Fallback to MESSAGE type
                 if current_type != MessageType.MESSAGE:
