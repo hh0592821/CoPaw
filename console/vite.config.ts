@@ -30,6 +30,8 @@ export default defineConfig(({ mode }) => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
+    // base: "/" is default - assets will be served at /assets/ by FastAPI
+
     server: {
       host: "0.0.0.0",
       port: 5173,
@@ -37,11 +39,11 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       include: ["diff"],
     },
-    // build: {
-    //   // Output to CoPaw's console directory,
-    //   // so we don't need to copy files manually after build.
-    //   outDir: path.resolve(__dirname, "../src/copaw/console"),
-    //   emptyOutDir: true,
-    // },
+    build: {
+      // Output to CoPaw's console directory,
+      // so we don't need to copy files manually after build.
+      outDir: path.resolve(__dirname, "../src/copaw/console"),
+      emptyOutDir: true,
+    },
   };
 });
