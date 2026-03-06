@@ -35,6 +35,7 @@ TELEGRAM_MAX_MESSAGE_LENGTH = 4096
 TELEGRAM_SEND_CHUNK_SIZE = 4000
 
 _DEFAULT_MEDIA_DIR = Path("~/.copaw/media/telegram").expanduser()
+_TYPING_TIMEOUT_S = 180
 
 _MEDIA_ATTRS: list[tuple[str, type, Any, str]] = [
     ("document", FileContent, ContentType.FILE, "file_url"),
@@ -234,12 +235,14 @@ class TelegramChannel(BaseChannel):
         media_dir: str = "",
         show_typing: bool = True,
         filter_tool_messages: bool = False,
+        filter_thinking: bool = False,
     ):
         super().__init__(
             process,
             on_reply_sent=on_reply_sent,
             show_tool_details=show_tool_details,
             filter_tool_messages=filter_tool_messages,
+            filter_thinking=filter_thinking,
         )
         self.enabled = enabled
         self._bot_token = bot_token
@@ -366,6 +369,7 @@ class TelegramChannel(BaseChannel):
         on_reply_sent: OnReplySent = None,
         show_tool_details: bool = True,
         filter_tool_messages: bool = False,
+        filter_thinking: bool = False,
     ) -> "TelegramChannel":
         channel_show_typing = None
         if isinstance(config, dict):
@@ -385,6 +389,7 @@ class TelegramChannel(BaseChannel):
                 on_reply_sent=on_reply_sent,
                 show_tool_details=show_tool_details,
                 filter_tool_messages=filter_tool_messages,
+                filter_thinking=filter_thinking,
                 show_typing=channel_show_typing
                 if channel_show_typing is not None
                 else True,
@@ -399,6 +404,7 @@ class TelegramChannel(BaseChannel):
             on_reply_sent=on_reply_sent,
             show_tool_details=show_tool_details,
             filter_tool_messages=filter_tool_messages,
+            filter_thinking=filter_thinking,
             show_typing=channel_show_typing
             if channel_show_typing is not None
             else True,
@@ -462,11 +468,17 @@ class TelegramChannel(BaseChannel):
     async def _typing_loop(self, chat_id: str) -> None:
         """Repeatedly send 'typing' action every 4s until cancelled."""
         try:
+            deadline = asyncio.get_event_loop().time() + _TYPING_TIMEOUT_S
             while self._application:
                 await self._send_chat_action(chat_id, "typing")
                 await asyncio.sleep(4)
+                if asyncio.get_event_loop().time() >= deadline:
+                    break
         except asyncio.CancelledError:
             pass
+        finally:
+            if self._typing_tasks.get(chat_id) is asyncio.current_task():
+                self._typing_tasks.pop(chat_id, None)
 
     async def send(
         self,
@@ -710,8 +722,6 @@ class TelegramChannel(BaseChannel):
     async def stop(self) -> None:
         if not self.enabled:
             return
-        for cid in list(self._typing_tasks):
-            self._stop_typing(cid)
         if self._task:
             self._task.cancel()
             try:
@@ -719,6 +729,8 @@ class TelegramChannel(BaseChannel):
             except (asyncio.CancelledError, asyncio.TimeoutError, Exception):
                 pass
             self._task = None
+        for cid in list(self._typing_tasks):
+            self._stop_typing(cid)
         if self._application:
             try:
                 updater = getattr(self._application, "updater", None)
