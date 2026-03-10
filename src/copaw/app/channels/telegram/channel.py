@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from telegram.constants import ParseMode
+from telegram.error import BadRequest
 
 from agentscope_runtime.engine.schemas.agent_schemas import (
     TextContent,
@@ -22,7 +23,7 @@ from agentscope_runtime.engine.schemas.agent_schemas import (
 )
 
 from ....config.config import TelegramConfig as TelegramChannelConfig
-from .format_html import markdown_to_telegram_html, strip_markdown
+from .format_html import markdown_to_telegram_html
 from ..base import (
     BaseChannel,
     OnReplySent,
@@ -126,9 +127,7 @@ async def _build_content_parts_from_message(
         return [TextContent(type=ContentType.TEXT, text="")], False
 
     content_parts: list[Any] = []
-    text = (
-        getattr(message, "text", None) or getattr(message, "caption") or ""
-    ).strip()
+    text = (getattr(message, "text", None) or getattr(message, "caption") or "").strip()
 
     entities = (
         getattr(message, "entities", None)
@@ -210,7 +209,6 @@ def _message_meta(update: Any) -> dict:
 
 
 class TelegramChannel(BaseChannel):
-
     """Telegram channel: Bot API polling; session_id = telegram:{chat_id}."""
 
     channel = "telegram"
@@ -527,25 +525,28 @@ class TelegramChannel(BaseChannel):
         if not bot:
             return
         self._stop_typing(chat_id)
-        chunks = self._chunk_text(text)
+        html_text = markdown_to_telegram_html(text)
+        chunks = self._chunk_text(html_text)
         for chunk in chunks:
-            html_chunk = markdown_to_telegram_html(chunk)
             try:
                 await bot.send_message(
                     chat_id=chat_id,
-                    text=html_chunk,
+                    text=chunk,
                     parse_mode=ParseMode.HTML,
                 )
-            except Exception:
+            except BadRequest as exc:
                 logger.warning(
-                    "telegram HTML send failed, trying plain text",
+                    "telegram HTML send failed, trying plain text: %s",
+                    exc,
                 )
                 try:
-                    plain = strip_markdown(chunk)
-                    await bot.send_message(chat_id=chat_id, text=plain)
+                    await bot.send_message(chat_id=chat_id, text=chunk)
                 except Exception:
                     logger.exception("telegram send_message fallback failed")
                     return
+            except Exception:
+                logger.exception("telegram send_message failed")
+                return
 
     async def send_media(
         self,
