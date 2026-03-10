@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import uuid
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -114,17 +115,17 @@ async def _build_content_parts_from_message(
     *,
     bot: Any,
     media_dir: Path,
-) -> tuple[list, bool]:
+) -> tuple[list, bool, bool]:
     """Build runtime content_parts from Telegram message.
 
-    Returns (content_parts, has_bot_command).
+    Returns (content_parts, has_bot_command, is_bot_mentioned).
     """
     message = getattr(update, "message", None) or getattr(
         update,
         "edited_message",
     )
     if not message:
-        return [TextContent(type=ContentType.TEXT, text="")], False
+        return [TextContent(type=ContentType.TEXT, text="")], False, False
 
     content_parts: list[Any] = []
     text = (getattr(message, "text", None) or getattr(message, "caption") or "").strip()
@@ -135,11 +136,34 @@ async def _build_content_parts_from_message(
         or []
     )
     has_bot_command = False
+    is_bot_mentioned = False
+    bot_username = getattr(bot, "username", None) or ""
+
     if entities:
         for entity in entities:
-            if getattr(entity, "type", None) == "bot_command":
+            etype = getattr(entity, "type", None)
+            if etype == "bot_command":
                 has_bot_command = True
-                break
+            elif etype == "mention" and bot_username:
+                offset = getattr(entity, "offset", 0)
+                length = getattr(entity, "length", 0)
+                mentioned = text[offset : offset + length]
+                if mentioned.lower() == f"@{bot_username.lower()}":
+                    is_bot_mentioned = True
+            elif etype == "text_mention":
+                euser = getattr(entity, "user", None)
+                if euser and str(
+                    getattr(euser, "id", ""),
+                ) == str(bot.id):
+                    is_bot_mentioned = True
+
+    if is_bot_mentioned and bot_username and text:
+        text = re.sub(
+            rf"@{re.escape(bot_username)}\b",
+            "",
+            text,
+            flags=re.IGNORECASE,
+        ).strip()
 
     if text:
         content_parts.append(TextContent(type=ContentType.TEXT, text=text))
@@ -182,7 +206,7 @@ async def _build_content_parts_from_message(
     if not content_parts:
         content_parts.append(TextContent(type=ContentType.TEXT, text=""))
 
-    return content_parts, has_bot_command
+    return content_parts, has_bot_command, is_bot_mentioned
 
 
 def _message_meta(update: Any) -> dict:
@@ -232,6 +256,7 @@ class TelegramChannel(BaseChannel):
         group_policy: str = "open",
         allow_from: Optional[list] = None,
         deny_message: str = "",
+        require_mention: bool = False,
     ):
         super().__init__(
             process,
@@ -243,6 +268,7 @@ class TelegramChannel(BaseChannel):
             group_policy=group_policy,
             allow_from=allow_from,
             deny_message=deny_message,
+            require_mention=require_mention,
         )
         self.enabled = enabled
         self._bot_token = bot_token
@@ -312,6 +338,7 @@ class TelegramChannel(BaseChannel):
             (
                 content_parts,
                 has_bot_command,
+                is_bot_mentioned,
             ) = await _build_content_parts_from_message(
                 update,
                 bot=context.bot,
@@ -320,6 +347,8 @@ class TelegramChannel(BaseChannel):
             meta = _message_meta(update)
             if has_bot_command:
                 meta["has_bot_command"] = True
+            if is_bot_mentioned:
+                meta["bot_mentioned"] = True
             chat_id = meta.get("chat_id", "")
             user = getattr(
                 update.message or getattr(update, "edited_message"),
@@ -349,6 +378,9 @@ class TelegramChannel(BaseChannel):
                         "telegram reject failed chat_id=%s",
                         chat_id,
                     )
+                return
+
+            if not self._check_group_mention(is_group, meta):
                 return
 
             native = {
@@ -393,6 +425,7 @@ class TelegramChannel(BaseChannel):
             group_policy=os.getenv("TELEGRAM_GROUP_POLICY", "open"),
             allow_from=allow_from,
             deny_message=os.getenv("TELEGRAM_DENY_MESSAGE", ""),
+            require_mention=os.getenv("TELEGRAM_REQUIRE_MENTION", "0") == "1",
         )
 
     @classmethod
@@ -433,6 +466,7 @@ class TelegramChannel(BaseChannel):
             group_policy=c.get("group_policy") or "open",
             allow_from=c.get("allow_from") or [],
             deny_message=c.get("deny_message") or "",
+            require_mention=c.get("require_mention", False),
         )
 
     def _chunk_text(self, text: str) -> list[str]:
