@@ -372,7 +372,7 @@ async def test_send_media_timed_out_sends_error_message() -> None:
     # An error message must be sent back to the user
     bot.send_message.assert_called_once()
     error_text = bot.send_message.await_args.kwargs["text"]
-    assert "超时" in error_text
+    assert "timed out" in error_text.lower()
     assert "50 MB" in error_text
 
 
@@ -419,7 +419,7 @@ async def test_send_media_bad_request_sends_error_message() -> None:
 
     bot.send_message.assert_called_once()
     error_text = bot.send_message.await_args.kwargs["text"]
-    assert "拒绝" in error_text
+    assert "rejected" in error_text.lower()
 
 
 @pytest.mark.asyncio
@@ -465,7 +465,7 @@ async def test_send_media_forbidden_sends_error_message() -> None:
 
     bot.send_message.assert_called_once()
     error_text = bot.send_message.await_args.kwargs["text"]
-    assert "权限" in error_text
+    assert "permission" in error_text.lower()
 
 
 @pytest.mark.asyncio
@@ -511,7 +511,7 @@ async def test_send_media_network_error_sends_error_message() -> None:
 
     bot.send_message.assert_called_once()
     error_text = bot.send_message.await_args.kwargs["text"]
-    assert "网络" in error_text
+    assert "network" in error_text.lower()
 
 
 @pytest.mark.asyncio
@@ -556,6 +556,6 @@ async def test_send_media_os_error_sends_error_message() -> None:
     # An error message must be sent back to the user
     bot.send_message.assert_called_once()
     error_text = bot.send_message.await_args.kwargs["text"]
-    assert "读取" in error_text or "失败" in error_text
+    assert "failed" in error_text.lower()
 
 

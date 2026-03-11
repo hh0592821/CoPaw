@@ -667,42 +667,42 @@ class TelegramChannel(BaseChannel):
             logger.warning("telegram send_media: bad request: %s", exc)
             await self.send(
                 to_handle,
-                f"Telegram 拒绝了此文件（{exc}）",
+                f"Telegram rejected the file: {exc}",
                 meta,
             )
         except TimedOut as exc:
             logger.warning("telegram send_media: timed out: %s", exc)
             await self.send(
                 to_handle,
-                "文件发送超时，文件可能过大（Telegram 机器人最大支持 50 MB）",
+                "File upload timed out. The file may be too large (Telegram bot limit: 50 MB).",
                 meta,
             )
         except RetryAfter as exc:
             logger.warning("telegram send_media: rate limited: %s", exc)
             await self.send(
                 to_handle,
-                f"请求过于频繁，请稍后重试（{exc}）",
+                f"Too many requests. Please try again later. ({exc})",
                 meta,
             )
         except Forbidden as exc:
             logger.warning("telegram send_media: forbidden: %s", exc)
             await self.send(
                 to_handle,
-                "机器人没有权限在此聊天发送媒体文件",
+                "The bot does not have permission to send media in this chat.",
                 meta,
             )
         except NetworkError as exc:
             logger.warning("telegram send_media: network error: %s", exc)
             await self.send(
                 to_handle,
-                "网络错误，文件发送失败，请稍后重试",
+                "Network error. Failed to send file, please try again later.",
                 meta,
             )
         except OSError as exc:
             logger.warning("telegram send_media: OS error: %s", exc)
             await self.send(
                 to_handle,
-                f"文件读取失败，无法发送（{exc.strerror}）",
+                f"Failed to read the file, cannot send ({exc.strerror}).",
                 meta,
             )
         except Exception:
@@ -746,8 +746,8 @@ class TelegramChannel(BaseChannel):
             if file_size > TELEGRAM_MAX_FILE_SIZE_BYTES:
                 file_size_mb = file_size / (1024 * 1024)
                 raise _FileTooLargeError(
-                    f"文件过大，无法通过 Telegram 发送：{local_path.name} "
-                    f"（{file_size_mb:.1f} MB，Telegram 机器人最大支持 50 MB）"
+                    f"File too large to send via Telegram: {local_path.name} "
+                    f"({file_size_mb:.1f} MB, Telegram bot limit: 50 MB)"
                 )
             try:
                 with open(local_path, "rb") as media_file:
