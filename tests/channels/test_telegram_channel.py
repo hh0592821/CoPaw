@@ -162,8 +162,9 @@ async def test_send_media_uses_message_thread_id_for_file_url() -> None:
         file_url="file:///tmp/demo.txt",
     )
 
-    with patch("pathlib.Path.exists", return_value=True), patch(
-        "builtins.open", mock_open(read_data=b"demo")
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("builtins.open", mock_open(read_data=b"demo")),
     ):
         await channel.send_media(
             "chat-1",
@@ -191,7 +192,7 @@ async def test_send_strips_html_in_plain_text_fallback() -> None:
         bot_prefix="",
     )
     send_message = AsyncMock(
-        side_effect=[TelegramBadRequest("can't parse entities"), None]
+        side_effect=[TelegramBadRequest("can't parse entities"), None],
     )
     bot = SimpleNamespace(send_message=send_message)
     # pylint: disable=protected-access
