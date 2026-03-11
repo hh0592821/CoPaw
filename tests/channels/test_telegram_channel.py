@@ -153,6 +153,7 @@ async def test_send_media_uses_message_thread_id_for_file_url() -> None:
         http_proxy="",
         http_proxy_auth="",
         bot_prefix="",
+        media_dir="/tmp",
     )
     bot = SimpleNamespace(send_document=AsyncMock())
     # pylint: disable=protected-access
@@ -162,7 +163,10 @@ async def test_send_media_uses_message_thread_id_for_file_url() -> None:
         file_url="file:///tmp/demo.txt",
     )
 
-    with patch("builtins.open", mock_open(read_data=b"demo")):
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("builtins.open", mock_open(read_data=b"demo")),
+    ):
         await channel.send_media(
             "chat-1",
             part,
@@ -173,3 +177,100 @@ async def test_send_media_uses_message_thread_id_for_file_url() -> None:
     assert kwargs["chat_id"] == "chat-1"
     assert kwargs["message_thread_id"] == 9
     assert hasattr(kwargs["document"], "read")
+
+
+@pytest.mark.asyncio
+async def test_send_strips_html_in_plain_text_fallback() -> None:
+    """On BadRequest, the fallback message has HTML tags stripped."""
+    from telegram.error import BadRequest as TelegramBadRequest
+
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+    )
+    send_message = AsyncMock(
+        side_effect=[TelegramBadRequest("can't parse entities"), None],
+    )
+    bot = SimpleNamespace(send_message=send_message)
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+
+    await channel.send(
+        "chat-1",
+        "**hello**",
+        meta={"chat_id": "chat-1"},
+    )
+
+    assert send_message.call_count == 2
+    fallback_kwargs = send_message.call_args_list[1].kwargs
+    assert "<" not in fallback_kwargs["text"]
+    assert ">" not in fallback_kwargs["text"]
+    # HTML entities produced by markdown_to_telegram_html should be unescaped
+    assert "&lt;" not in fallback_kwargs["text"]
+    assert "&gt;" not in fallback_kwargs["text"]
+    assert "&amp;" not in fallback_kwargs["text"]
+
+
+@pytest.mark.asyncio
+async def test_send_media_warns_for_path_outside_media_dir() -> None:
+    """file:// paths outside media_dir emit a warning but are still sent."""
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir="/tmp/media",
+    )
+    bot = SimpleNamespace(send_document=AsyncMock())
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    part = FileContent(
+        type=ContentType.FILE,
+        file_url="file:///etc/passwd",
+    )
+
+    with patch(
+        "copaw.app.channels.telegram.channel.logger",
+    ) as mock_logger:
+        await channel.send_media(
+            "chat-1",
+            part,
+            meta={"chat_id": "chat-1"},
+        )
+
+    warning_messages = [
+        str(call) for call in mock_logger.warning.call_args_list
+    ]
+    assert any("outside allowed directory" in msg for msg in warning_messages)
+    bot.send_document.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_send_includes_thread_id_zero() -> None:
+    """message_thread_id=0 (falsy but not None) must still be forwarded."""
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+    )
+    bot = SimpleNamespace(send_message=AsyncMock())
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+
+    await channel.send(
+        "chat-1",
+        "hello",
+        meta={"chat_id": "chat-1", "message_thread_id": 0},
+    )
+
+    kwargs = bot.send_message.await_args.kwargs
+    assert kwargs["message_thread_id"] == 0
