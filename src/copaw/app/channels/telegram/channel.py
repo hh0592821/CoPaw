@@ -599,13 +599,13 @@ class TelegramChannel(BaseChannel):
             return
         message_thread_id = meta.get("message_thread_id")
         self._stop_typing(chat_id)
-        html_text = markdown_to_telegram_html(text)
-        chunks = self._chunk_text(html_text)
+        chunks = self._chunk_text(text)
         for chunk in chunks:
+            html_chunk = markdown_to_telegram_html(chunk)
             try:
                 kwargs = {
                     "chat_id": chat_id,
-                    "text": chunk,
+                    "text": html_chunk,
                     "parse_mode": ParseMode.HTML,
                 }
                 if message_thread_id is not None:
@@ -617,7 +617,9 @@ class TelegramChannel(BaseChannel):
                     exc,
                 )
                 try:
-                    plain_chunk = html.unescape(re.sub(r"<[^>]+>", "", chunk))
+                    plain_chunk = html.unescape(
+                        re.sub(r"<[^>]+>", "", html_chunk),
+                    )
                     kwargs = {
                         "chat_id": chat_id,
                         "text": plain_chunk,
@@ -677,13 +679,13 @@ class TelegramChannel(BaseChannel):
                     message_thread_id=message_thread_id,
                 )
             elif part_type == ContentType.AUDIO:
-                data = getattr(part, "data", None)
-                await self._send_media_payload(
+                audio_data = getattr(part, "data", None)
+                await self._send_media_value(
                     bot=bot,
                     chat_id=chat_id,
+                    value=audio_data,
                     method_name="send_audio",
                     payload_name="audio",
-                    payload=data,
                     message_thread_id=message_thread_id,
                 )
             elif part_type == ContentType.FILE:
