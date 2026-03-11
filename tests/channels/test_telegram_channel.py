@@ -222,8 +222,15 @@ async def test_send_strips_html_in_plain_text_fallback() -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_media_warns_for_path_outside_media_dir() -> None:
+async def test_send_media_warns_for_path_outside_media_dir(tmp_path) -> None:
     """file:// paths outside media_dir emit a warning but are still sent."""
+    # Create a real file outside media_dir so Path.exists() passes without
+    # patching, and the test is portable (no dependency on /etc/passwd).
+    outside_file = tmp_path / "outside.txt"
+    outside_file.write_bytes(b"test content")
+    media_subdir = tmp_path / "media"
+    media_subdir.mkdir()
+
     channel = TelegramChannel(
         process=MagicMock(),
         enabled=True,
@@ -231,14 +238,14 @@ async def test_send_media_warns_for_path_outside_media_dir() -> None:
         http_proxy="",
         http_proxy_auth="",
         bot_prefix="",
-        media_dir="/tmp/media",
+        media_dir=str(media_subdir),
     )
     bot = SimpleNamespace(send_document=AsyncMock())
     # pylint: disable=protected-access
     channel._application = cast(Any, SimpleNamespace(bot=bot))
     part = FileContent(
         type=ContentType.FILE,
-        file_url="file:///etc/passwd",
+        file_url=outside_file.as_uri(),
     )
 
     with patch(
@@ -557,3 +564,91 @@ async def test_send_media_os_error_sends_error_message() -> None:
     bot.send_message.assert_called_once()
     error_text = bot.send_message.await_args.kwargs["text"]
     assert "failed" in error_text.lower()
+
+
+@pytest.mark.asyncio
+async def test_send_media_audio_file_url_opens_file(tmp_path) -> None:
+    """AudioContent with a file:// URL must open the file (not pass the
+    raw URL string) to bot.send_audio."""
+    from agentscope_runtime.engine.schemas.agent_schemas import (
+        AudioContent,
+    )
+
+    audio_file = tmp_path / "clip.ogg"
+    audio_file.write_bytes(b"ogg data")
+
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir=str(tmp_path),
+    )
+    bot = SimpleNamespace(send_audio=AsyncMock())
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    part = AudioContent(
+        type=ContentType.AUDIO,
+        data=audio_file.as_uri(),
+    )
+
+    fake_stat = MagicMock()
+    fake_stat.st_size = len(b"ogg data")
+
+    with (
+        patch("pathlib.Path.stat", return_value=fake_stat),
+        patch("builtins.open", mock_open(read_data=b"ogg data")),
+    ):
+        await channel.send_media(
+            "chat-1",
+            part,
+            meta={"chat_id": "chat-1"},
+        )
+
+    bot.send_audio.assert_called_once()
+    kwargs = bot.send_audio.await_args.kwargs
+    assert kwargs["chat_id"] == "chat-1"
+    # The audio payload must be a file-like object, not a URL string
+    assert hasattr(kwargs["audio"], "read")
+
+
+@pytest.mark.asyncio
+async def test_send_chunks_markdown_before_html_conversion() -> None:
+    """send() must chunk the markdown text before HTML conversion so that
+    HTML tags are never split across chunk boundaries."""
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+    )
+    bot = SimpleNamespace(send_message=AsyncMock())
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+
+    # Build a message that spans two chunks.  20 chars of headroom leave the
+    # bold marker "**bold**" (8 chars in MD → "<b>bold</b>" in HTML, 11 chars)
+    # near the boundary of the first chunk so that a naive "convert-then-slice"
+    # implementation would split the HTML tag across chunks.  The trailing 100
+    # "y" characters push the total clearly past TELEGRAM_SEND_CHUNK_SIZE.
+    from copaw.app.channels.telegram.channel import TELEGRAM_SEND_CHUNK_SIZE
+
+    filler = "x" * (TELEGRAM_SEND_CHUNK_SIZE - 20)
+    text = filler + " **bold** " + "y" * 100
+
+    await channel.send("chat-1", text, meta={"chat_id": "chat-1"})
+
+    # Two chunks must have been sent
+    assert bot.send_message.call_count == 2
+    # Each chunk must be individually valid HTML: no unclosed <b> tags
+    for call in bot.send_message.call_args_list:
+        chunk_text = call.kwargs["text"]
+        open_tags = chunk_text.count("<b>")
+        close_tags = chunk_text.count("</b>")
+        assert (
+            open_tags == close_tags
+        ), f"Mismatched <b> tags in chunk: {chunk_text!r}"
