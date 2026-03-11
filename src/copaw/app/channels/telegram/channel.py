@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from telegram.constants import ParseMode
-from telegram.error import BadRequest, TimedOut
+from telegram.error import BadRequest, Forbidden, NetworkError, RetryAfter, TimedOut
 
 from agentscope_runtime.engine.schemas.agent_schemas import (
     TextContent,
@@ -663,11 +663,46 @@ class TelegramChannel(BaseChannel):
         except _FileTooLargeError as exc:
             logger.warning("telegram send_media: file too large: %s", exc)
             await self.send(to_handle, str(exc), meta)
+        except BadRequest as exc:
+            logger.warning("telegram send_media: bad request: %s", exc)
+            await self.send(
+                to_handle,
+                f"Telegram 拒绝了此文件（{exc}）",
+                meta,
+            )
         except TimedOut as exc:
             logger.warning("telegram send_media: timed out: %s", exc)
             await self.send(
                 to_handle,
                 "文件发送超时，文件可能过大（Telegram 机器人最大支持 50 MB）",
+                meta,
+            )
+        except RetryAfter as exc:
+            logger.warning("telegram send_media: rate limited: %s", exc)
+            await self.send(
+                to_handle,
+                f"请求过于频繁，请稍后重试（{exc}）",
+                meta,
+            )
+        except Forbidden as exc:
+            logger.warning("telegram send_media: forbidden: %s", exc)
+            await self.send(
+                to_handle,
+                "机器人没有权限在此聊天发送媒体文件",
+                meta,
+            )
+        except NetworkError as exc:
+            logger.warning("telegram send_media: network error: %s", exc)
+            await self.send(
+                to_handle,
+                "网络错误，文件发送失败，请稍后重试",
+                meta,
+            )
+        except OSError as exc:
+            logger.warning("telegram send_media: OS error: %s", exc)
+            await self.send(
+                to_handle,
+                f"文件读取失败，无法发送（{exc.strerror}）",
                 meta,
             )
         except Exception:
@@ -730,6 +765,7 @@ class TelegramChannel(BaseChannel):
                     local_path,
                     exc,
                 )
+                raise
             return
         await self._send_media_payload(
             bot=bot,

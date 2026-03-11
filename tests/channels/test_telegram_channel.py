@@ -375,3 +375,187 @@ async def test_send_media_timed_out_sends_error_message() -> None:
     assert "超时" in error_text
     assert "50 MB" in error_text
 
+
+@pytest.mark.asyncio
+async def test_send_media_bad_request_sends_error_message() -> None:
+    """When Telegram raises BadRequest, send_media notifies the user."""
+    from telegram.error import BadRequest as TelegramBadRequest
+
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir="/tmp",
+    )
+    bot = SimpleNamespace(
+        send_document=AsyncMock(
+            side_effect=TelegramBadRequest("DOCUMENT_INVALID_DIMENSIONS"),
+        ),
+        send_message=AsyncMock(),
+    )
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    part = FileContent(
+        type=ContentType.FILE,
+        file_url="file:///tmp/bad.bin",
+    )
+
+    fake_stat = MagicMock()
+    fake_stat.st_size = 1024
+
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.stat", return_value=fake_stat),
+        patch("builtins.open", mock_open(read_data=b"data")),
+    ):
+        await channel.send_media(
+            "chat-1",
+            part,
+            meta={"chat_id": "chat-1"},
+        )
+
+    bot.send_message.assert_called_once()
+    error_text = bot.send_message.await_args.kwargs["text"]
+    assert "拒绝" in error_text
+
+
+@pytest.mark.asyncio
+async def test_send_media_forbidden_sends_error_message() -> None:
+    """When Telegram raises Forbidden, send_media notifies the user."""
+    from telegram.error import Forbidden as TelegramForbidden
+
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir="/tmp",
+    )
+    bot = SimpleNamespace(
+        send_document=AsyncMock(
+            side_effect=TelegramForbidden("Bot was blocked by the user"),
+        ),
+        send_message=AsyncMock(),
+    )
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    part = FileContent(
+        type=ContentType.FILE,
+        file_url="file:///tmp/doc.pdf",
+    )
+
+    fake_stat = MagicMock()
+    fake_stat.st_size = 1024
+
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.stat", return_value=fake_stat),
+        patch("builtins.open", mock_open(read_data=b"data")),
+    ):
+        await channel.send_media(
+            "chat-1",
+            part,
+            meta={"chat_id": "chat-1"},
+        )
+
+    bot.send_message.assert_called_once()
+    error_text = bot.send_message.await_args.kwargs["text"]
+    assert "权限" in error_text
+
+
+@pytest.mark.asyncio
+async def test_send_media_network_error_sends_error_message() -> None:
+    """When Telegram raises a generic NetworkError, send_media notifies the user."""
+    from telegram.error import NetworkError as TelegramNetworkError
+
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir="/tmp",
+    )
+    bot = SimpleNamespace(
+        send_document=AsyncMock(
+            side_effect=TelegramNetworkError("Connection reset"),
+        ),
+        send_message=AsyncMock(),
+    )
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    part = FileContent(
+        type=ContentType.FILE,
+        file_url="file:///tmp/doc.pdf",
+    )
+
+    fake_stat = MagicMock()
+    fake_stat.st_size = 1024
+
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.stat", return_value=fake_stat),
+        patch("builtins.open", mock_open(read_data=b"data")),
+    ):
+        await channel.send_media(
+            "chat-1",
+            part,
+            meta={"chat_id": "chat-1"},
+        )
+
+    bot.send_message.assert_called_once()
+    error_text = bot.send_message.await_args.kwargs["text"]
+    assert "网络" in error_text
+
+
+@pytest.mark.asyncio
+async def test_send_media_os_error_sends_error_message() -> None:
+    """When a local file can't be read (OSError), send_media notifies the user."""
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir="/tmp",
+    )
+    bot = SimpleNamespace(
+        send_document=AsyncMock(),
+        send_message=AsyncMock(),
+    )
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    part = FileContent(
+        type=ContentType.FILE,
+        file_url="file:///tmp/locked.pdf",
+    )
+
+    fake_stat = MagicMock()
+    fake_stat.st_size = 1024
+
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.stat", return_value=fake_stat),
+        patch("builtins.open", side_effect=OSError("Permission denied")),
+    ):
+        await channel.send_media(
+            "chat-1",
+            part,
+            meta={"chat_id": "chat-1"},
+        )
+
+    # The file was never uploaded
+    bot.send_document.assert_not_called()
+    # An error message must be sent back to the user
+    bot.send_message.assert_called_once()
+    error_text = bot.send_message.await_args.kwargs["text"]
+    assert "读取" in error_text or "失败" in error_text
+
+
