@@ -16,6 +16,9 @@ from agentscope.message import (
 from ..schema import FileBlock
 
 
+_TELEGRAM_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB – Telegram bot limit
+
+
 def _auto_as_type(mt: str) -> str:
     if mt.startswith("image/"):
         return "image"
@@ -61,6 +64,22 @@ async def send_file_to_user(
                 TextBlock(
                     type="text",
                     text=f"Error: The path {file_path} is not a file.",
+                ),
+            ],
+        )
+
+    file_size = os.path.getsize(file_path)
+    if file_size > _TELEGRAM_MAX_FILE_SIZE_BYTES:
+        file_size_mb = file_size / (1024 * 1024)
+        return ToolResponse(
+            content=[
+                TextBlock(
+                    type="text",
+                    text=(
+                        f"Error: The file {os.path.basename(file_path)} is too large "
+                        f"to send ({file_size_mb:.1f} MB). "
+                        "Telegram bot limit is 50 MB."
+                    ),
                 ),
             ],
         )
