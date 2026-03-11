@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
 import re
 import uuid
@@ -25,6 +26,7 @@ from agentscope_runtime.engine.schemas.agent_schemas import (
 
 from ....config.config import TelegramConfig as TelegramChannelConfig
 from .format_html import markdown_to_telegram_html
+from ..utils import file_url_to_local_path
 from ..base import (
     BaseChannel,
     OnReplySent,
@@ -128,9 +130,7 @@ async def _build_content_parts_from_message(
         return [], False
 
     content_parts: list[Any] = []
-    text = (
-        getattr(message, "text", None) or getattr(message, "caption") or ""
-    ).strip()
+    text = (getattr(message, "text", None) or getattr(message, "caption") or "").strip()
 
     entities = (
         getattr(message, "entities", None)
@@ -387,8 +387,7 @@ class TelegramChannel(BaseChannel):
     ) -> tuple[bool, list[Any]]:
         """Process media-only Telegram messages without waiting for text."""
         has_media = any(
-            getattr(part, "type", None)
-            not in (ContentType.TEXT, ContentType.REFUSAL)
+            getattr(part, "type", None) not in (ContentType.TEXT, ContentType.REFUSAL)
             for part in content_parts
         )
         if has_media:
@@ -574,7 +573,7 @@ class TelegramChannel(BaseChannel):
                     exc,
                 )
                 try:
-                    plain_chunk = re.sub(r"<[^>]+>", "", chunk)
+                    plain_chunk = html.unescape(re.sub(r"<[^>]+>", "", chunk))
                     kwargs = {
                         "chat_id": chat_id,
                         "text": plain_chunk,
@@ -670,7 +669,18 @@ class TelegramChannel(BaseChannel):
         if not value:
             return
         if isinstance(value, str) and value.startswith("file://"):
-            local_path = Path(value.removeprefix("file://")).resolve()
+            raw_path = file_url_to_local_path(value)
+            if not raw_path:
+                logger.warning("telegram: could not resolve file URL: %s", value)
+                return
+            local_path = Path(raw_path).resolve()
+            allowed_root = self._media_dir.resolve()
+            if not local_path.is_relative_to(allowed_root):
+                logger.warning(
+                    "telegram: refusing to send media outside allowed directory: %s",
+                    local_path,
+                )
+                return
             if not local_path.exists():
                 logger.warning(
                     "telegram: media file not found: %s",
@@ -687,10 +697,11 @@ class TelegramChannel(BaseChannel):
                         payload=media_file,
                         message_thread_id=message_thread_id,
                     )
-            except OSError:
+            except OSError as exc:
                 logger.warning(
-                    "telegram: failed to open media file: %s",
+                    "telegram: failed to open media file: %s: %s",
                     local_path,
+                    exc,
                 )
             return
         await self._send_media_payload(

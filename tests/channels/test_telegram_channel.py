@@ -153,6 +153,7 @@ async def test_send_media_uses_message_thread_id_for_file_url() -> None:
         http_proxy="",
         http_proxy_auth="",
         bot_prefix="",
+        media_dir="/tmp",
     )
     bot = SimpleNamespace(send_document=AsyncMock())
     # pylint: disable=protected-access
@@ -208,6 +209,39 @@ async def test_send_strips_html_in_plain_text_fallback() -> None:
     fallback_kwargs = send_message.call_args_list[1].kwargs
     assert "<" not in fallback_kwargs["text"]
     assert ">" not in fallback_kwargs["text"]
+    # HTML entities produced by markdown_to_telegram_html should be unescaped
+    assert "&lt;" not in fallback_kwargs["text"]
+    assert "&gt;" not in fallback_kwargs["text"]
+    assert "&amp;" not in fallback_kwargs["text"]
+
+
+@pytest.mark.asyncio
+async def test_send_media_rejects_path_outside_media_dir() -> None:
+    """file:// paths outside media_dir are rejected to prevent data exfiltration."""
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir="/tmp/media",
+    )
+    bot = SimpleNamespace(send_document=AsyncMock())
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    part = FileContent(
+        type=ContentType.FILE,
+        file_url="file:///etc/passwd",
+    )
+
+    await channel.send_media(
+        "chat-1",
+        part,
+        meta={"chat_id": "chat-1"},
+    )
+
+    bot.send_document.assert_not_called()
 
 
 @pytest.mark.asyncio
