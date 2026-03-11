@@ -470,7 +470,7 @@ async def test_send_media_forbidden_sends_error_message() -> None:
 
 @pytest.mark.asyncio
 async def test_send_media_network_error_sends_error_message() -> None:
-    """When Telegram raises a generic NetworkError, send_media notifies the user."""
+    """When Telegram raises a NetworkError, send_media notifies the user."""
     from telegram.error import NetworkError as TelegramNetworkError
 
     channel = TelegramChannel(
@@ -516,7 +516,7 @@ async def test_send_media_network_error_sends_error_message() -> None:
 
 @pytest.mark.asyncio
 async def test_send_media_os_error_sends_error_message() -> None:
-    """When a local file can't be read (OSError), send_media notifies the user."""
+    """When a file can't be read (OSError), send_media notifies the user."""
     channel = TelegramChannel(
         process=MagicMock(),
         enabled=True,
@@ -557,5 +557,3 @@ async def test_send_media_os_error_sends_error_message() -> None:
     bot.send_message.assert_called_once()
     error_text = bot.send_message.await_args.kwargs["text"]
     assert "failed" in error_text.lower()
-
-

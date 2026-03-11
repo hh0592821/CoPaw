@@ -15,6 +15,9 @@ from agentscope.message import (
 from ..schema import FileBlock
 
 
+_TELEGRAM_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB – Telegram bot limit
+
+
 def _auto_as_type(mt: str) -> str:
     if mt.startswith("image/"):
         return "image"
@@ -59,6 +62,22 @@ async def send_file_to_user(
             ],
         )
 
+    file_size = os.path.getsize(file_path)
+    if file_size > _TELEGRAM_MAX_FILE_SIZE_BYTES:
+        file_size_mb = file_size / (1024 * 1024)
+        return ToolResponse(
+            content=[
+                TextBlock(
+                    type="text",
+                    text=(
+                        f"Error: The file {os.path.basename(file_path)} is too large "
+                        f"to send ({file_size_mb:.1f} MB). "
+                        "Telegram bot limit is 50 MB."
+                    ),
+                ),
+            ],
+        )
+
     # Detect MIME type
     mime_type, _ = mimetypes.guess_type(file_path)
     if mime_type is None:
@@ -76,21 +95,21 @@ async def send_file_to_user(
             return ToolResponse(
                 content=[
                     ImageBlock(type="image", source=source),
-                    TextBlock(type="text", text="已成功发送文件"),
+                    TextBlock(type="text", text="File sent successfully."),
                 ],
             )
         if as_type == "audio":
             return ToolResponse(
                 content=[
                     AudioBlock(type="audio", source=source),
-                    TextBlock(type="text", text="已成功发送文件"),
+                    TextBlock(type="text", text="File sent successfully."),
                 ],
             )
         if as_type == "video":
             return ToolResponse(
                 content=[
                     VideoBlock(type="video", source=source),
-                    TextBlock(type="text", text="已成功发送文件"),
+                    TextBlock(type="text", text="File sent successfully."),
                 ],
             )
 
@@ -101,7 +120,7 @@ async def send_file_to_user(
                     source=source,
                     filename=os.path.basename(file_path),
                 ),
-                TextBlock(type="text", text="已成功发送文件"),
+                TextBlock(type="text", text="File sent successfully."),
             ],
         )
 

@@ -13,7 +13,13 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from telegram.constants import ParseMode
-from telegram.error import BadRequest, Forbidden, NetworkError, RetryAfter, TimedOut
+from telegram.error import (
+    BadRequest,
+    Forbidden,
+    NetworkError,
+    RetryAfter,
+    TimedOut,
+)
 
 from agentscope_runtime.engine.schemas.agent_schemas import (
     TextContent,
@@ -38,7 +44,9 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_MAX_MESSAGE_LENGTH = 4096
 TELEGRAM_SEND_CHUNK_SIZE = 4000
-TELEGRAM_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB – Telegram bot upload limit
+TELEGRAM_MAX_FILE_SIZE_BYTES = (
+    50 * 1024 * 1024
+)  # 50 MB – Telegram bot upload limit
 
 _DEFAULT_MEDIA_DIR = Path("~/.copaw/media/telegram").expanduser()
 _TYPING_TIMEOUT_S = 180
@@ -596,7 +604,7 @@ class TelegramChannel(BaseChannel):
                 logger.exception("telegram send_message failed")
                 return
 
-    async def send_media(
+    async def send_media(  # pylint: disable=too-many-statements
         self,
         to_handle: str,
         part: OutgoingContentPart,
@@ -674,7 +682,8 @@ class TelegramChannel(BaseChannel):
             logger.warning("telegram send_media: timed out: %s", exc)
             await self.send(
                 to_handle,
-                "File upload timed out. The file may be too large (Telegram bot limit: 50 MB).",
+                "File upload timed out. "
+                "The file may be too large (Telegram bot limit: 50 MB).",
                 meta,
             )
         except RetryAfter as exc:
@@ -747,7 +756,7 @@ class TelegramChannel(BaseChannel):
                 file_size_mb = file_size / (1024 * 1024)
                 raise _FileTooLargeError(
                     f"File too large to send via Telegram: {local_path.name} "
-                    f"({file_size_mb:.1f} MB, Telegram bot limit: 50 MB)"
+                    f"({file_size_mb:.1f} MB, Telegram bot limit: 50 MB)",
                 )
             try:
                 with open(local_path, "rb") as media_file:
