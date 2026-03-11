@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Optional, Union
 
 from telegram.constants import ParseMode
-from telegram.error import BadRequest
+from telegram.error import BadRequest, TimedOut
 
 from agentscope_runtime.engine.schemas.agent_schemas import (
     TextContent,
@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_MAX_MESSAGE_LENGTH = 4096
 TELEGRAM_SEND_CHUNK_SIZE = 4000
+TELEGRAM_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB – Telegram bot upload limit
 
 _DEFAULT_MEDIA_DIR = Path("~/.copaw/media/telegram").expanduser()
 _TYPING_TIMEOUT_S = 180
@@ -48,6 +49,10 @@ _MEDIA_ATTRS: list[tuple[str, type, Any, str]] = [
     ("voice", AudioContent, ContentType.AUDIO, "data"),
     ("audio", AudioContent, ContentType.AUDIO, "data"),
 ]
+
+
+class _FileTooLargeError(Exception):
+    """Raised when a local media file exceeds Telegram's upload size limit."""
 
 
 async def _download_telegram_file(
@@ -655,6 +660,16 @@ class TelegramChannel(BaseChannel):
                     payload_name="document",
                     message_thread_id=message_thread_id,
                 )
+        except _FileTooLargeError as exc:
+            logger.warning("telegram send_media: file too large: %s", exc)
+            await self.send(to_handle, str(exc), meta)
+        except TimedOut as exc:
+            logger.warning("telegram send_media: timed out: %s", exc)
+            await self.send(
+                to_handle,
+                "文件发送超时，文件可能过大（Telegram 机器人最大支持 50 MB）",
+                meta,
+            )
         except Exception:
             logger.exception("telegram send_media failed")
 
@@ -692,6 +707,13 @@ class TelegramChannel(BaseChannel):
                     local_path,
                 )
                 return
+            file_size = local_path.stat().st_size
+            if file_size > TELEGRAM_MAX_FILE_SIZE_BYTES:
+                file_size_mb = file_size / (1024 * 1024)
+                raise _FileTooLargeError(
+                    f"文件过大，无法通过 Telegram 发送：{local_path.name} "
+                    f"（{file_size_mb:.1f} MB，Telegram 机器人最大支持 50 MB）"
+                )
             try:
                 with open(local_path, "rb") as media_file:
                     await self._send_media_payload(

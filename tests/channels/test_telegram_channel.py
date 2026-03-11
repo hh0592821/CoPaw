@@ -10,8 +10,10 @@ import pytest
 from agentscope_runtime.engine.schemas.agent_schemas import (
     ContentType,
     FileContent,
+    VideoContent,
 )
 from copaw.app.channels.telegram.channel import (
+    TELEGRAM_MAX_FILE_SIZE_BYTES,
     TelegramChannel,
     _build_content_parts_from_message,
     _message_meta,
@@ -163,8 +165,12 @@ async def test_send_media_uses_message_thread_id_for_file_url() -> None:
         file_url="file:///tmp/demo.txt",
     )
 
+    fake_stat = MagicMock()
+    fake_stat.st_size = 1024  # small file, well under the 50 MB limit
+
     with (
         patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.stat", return_value=fake_stat),
         patch("builtins.open", mock_open(read_data=b"demo")),
     ):
         await channel.send_media(
@@ -274,3 +280,98 @@ async def test_send_includes_thread_id_zero() -> None:
 
     kwargs = bot.send_message.await_args.kwargs
     assert kwargs["message_thread_id"] == 0
+
+
+@pytest.mark.asyncio
+async def test_send_media_file_too_large_sends_error_message() -> None:
+    """When a local file exceeds TELEGRAM_MAX_FILE_SIZE_BYTES, send_media
+    notifies the user with a message that includes the file name and size."""
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir="/tmp",
+    )
+    bot = SimpleNamespace(
+        send_document=AsyncMock(),
+        send_message=AsyncMock(),
+    )
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    part = FileContent(
+        type=ContentType.FILE,
+        file_url="file:///tmp/bigfile.mp4",
+    )
+
+    oversized = TELEGRAM_MAX_FILE_SIZE_BYTES + 1
+    fake_stat = MagicMock()
+    fake_stat.st_size = oversized
+
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.stat", return_value=fake_stat),
+    ):
+        await channel.send_media(
+            "chat-1",
+            part,
+            meta={"chat_id": "chat-1"},
+        )
+
+    # The oversized file must NOT be uploaded
+    bot.send_document.assert_not_called()
+    # An error message must be sent back to the user
+    bot.send_message.assert_called_once()
+    error_text = bot.send_message.await_args.kwargs["text"]
+    assert "bigfile.mp4" in error_text
+    assert "50 MB" in error_text
+
+
+@pytest.mark.asyncio
+async def test_send_media_timed_out_sends_error_message() -> None:
+    """When Telegram raises TimedOut, send_media notifies the user."""
+    from telegram.error import TimedOut as TelegramTimedOut
+
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir="/tmp",
+    )
+    bot = SimpleNamespace(
+        send_video=AsyncMock(side_effect=TelegramTimedOut()),
+        send_message=AsyncMock(),
+    )
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    part = VideoContent(
+        type=ContentType.VIDEO,
+        video_url="file:///tmp/video.mp4",
+    )
+
+    small_size = 1024  # well under the limit
+    fake_stat = MagicMock()
+    fake_stat.st_size = small_size
+
+    with (
+        patch("pathlib.Path.exists", return_value=True),
+        patch("pathlib.Path.stat", return_value=fake_stat),
+        patch("builtins.open", mock_open(read_data=b"data")),
+    ):
+        await channel.send_media(
+            "chat-1",
+            part,
+            meta={"chat_id": "chat-1"},
+        )
+
+    # An error message must be sent back to the user
+    bot.send_message.assert_called_once()
+    error_text = bot.send_message.await_args.kwargs["text"]
+    assert "超时" in error_text
+    assert "50 MB" in error_text
+
