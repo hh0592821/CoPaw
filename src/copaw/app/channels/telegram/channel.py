@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import uuid
 from pathlib import Path
 from typing import Any, Optional, Union
@@ -564,7 +565,7 @@ class TelegramChannel(BaseChannel):
                     "text": chunk,
                     "parse_mode": ParseMode.HTML,
                 }
-                if message_thread_id:
+                if message_thread_id is not None:
                     kwargs["message_thread_id"] = message_thread_id
                 await bot.send_message(**kwargs)
             except BadRequest as exc:
@@ -573,11 +574,12 @@ class TelegramChannel(BaseChannel):
                     exc,
                 )
                 try:
+                    plain_chunk = re.sub(r"<[^>]+>", "", chunk)
                     kwargs = {
                         "chat_id": chat_id,
-                        "text": chunk,
+                        "text": plain_chunk,
                     }
-                    if message_thread_id:
+                    if message_thread_id is not None:
                         kwargs["message_thread_id"] = message_thread_id
                     await bot.send_message(**kwargs)
                 except Exception:
@@ -668,15 +670,27 @@ class TelegramChannel(BaseChannel):
         if not value:
             return
         if isinstance(value, str) and value.startswith("file://"):
-            local_path = value.replace("file://", "")
-            with open(local_path, "rb") as media_file:
-                await self._send_media_payload(
-                    bot=bot,
-                    chat_id=chat_id,
-                    method_name=method_name,
-                    payload_name=payload_name,
-                    payload=media_file,
-                    message_thread_id=message_thread_id,
+            local_path = Path(value.removeprefix("file://")).resolve()
+            if not local_path.is_relative_to(self._media_dir.resolve()):
+                logger.warning(
+                    "telegram: rejected file:// path outside media_dir: %s",
+                    local_path,
+                )
+                return
+            try:
+                with open(local_path, "rb") as media_file:
+                    await self._send_media_payload(
+                        bot=bot,
+                        chat_id=chat_id,
+                        method_name=method_name,
+                        payload_name=payload_name,
+                        payload=media_file,
+                        message_thread_id=message_thread_id,
+                    )
+            except OSError:
+                logger.warning(
+                    "telegram: failed to open media file: %s",
+                    local_path,
                 )
             return
         await self._send_media_payload(
@@ -705,7 +719,7 @@ class TelegramChannel(BaseChannel):
             "chat_id": chat_id,
             payload_name: payload,
         }
-        if message_thread_id:
+        if message_thread_id is not None:
             kwargs["message_thread_id"] = message_thread_id
         await getattr(bot, method_name)(**kwargs)
 
