@@ -61,6 +61,10 @@ class _FileTooLargeError(Exception):
     """Raised when a local media file exceeds Telegram's upload size limit."""
 
 
+class _MediaFileUnavailableError(Exception):
+    """Raised when a media file cannot be found or resolved."""
+
+
 async def _download_telegram_file(
     *,
     bot: Any,
@@ -193,11 +197,7 @@ async def _build_content_parts_from_message(
                 filename_hint="photo.jpg",
             )
             if local_path:
-                file_url = (
-                    f"file://{local_path}"
-                    if not local_path.startswith("file://")
-                    else local_path
-                )
+                file_url = Path(local_path).resolve().as_uri()
                 content_parts.append(
                     ImageContent(type=ContentType.IMAGE, image_url=file_url),
                 )
@@ -217,11 +217,7 @@ async def _build_content_parts_from_message(
             filename_hint=file_name,
         )
         if local_path:
-            file_url = (
-                f"file://{local_path}"
-                if not local_path.startswith("file://")
-                else local_path
-            )
+            file_url = Path(local_path).resolve().as_uri()
             content_parts.append(
                 content_cls(type=content_type, **{url_field: file_url}),
             )
@@ -701,6 +697,9 @@ class TelegramChannel(BaseChannel):
         except _FileTooLargeError as exc:
             logger.warning("telegram send_media: file too large: %s", exc)
             await self.send(to_handle, str(exc), meta)
+        except _MediaFileUnavailableError as exc:
+            logger.warning("telegram send_media: file unavailable: %s", exc)
+            await self.send(to_handle, str(exc), meta)
         except BadRequest as exc:
             logger.warning("telegram send_media: bad request: %s", exc)
             await self.send(
@@ -739,9 +738,10 @@ class TelegramChannel(BaseChannel):
             )
         except OSError as exc:
             logger.warning("telegram send_media: OS error: %s", exc)
+            error_detail = str(exc) or repr(exc)
             await self.send(
                 to_handle,
-                f"Failed to read the file, cannot send ({exc.strerror}).",
+                f"Failed to read the file, cannot send ({error_detail}).",
                 meta,
             )
         except Exception:
@@ -763,11 +763,9 @@ class TelegramChannel(BaseChannel):
         if isinstance(value, str) and value.startswith("file://"):
             raw_path = file_url_to_local_path(value)
             if not raw_path:
-                logger.warning(
-                    "telegram: could not resolve file URL: %s",
-                    value,
+                raise _MediaFileUnavailableError(
+                    f"Could not resolve file URL: {value}",
                 )
-                return
             local_path = Path(raw_path).resolve()
             allowed_root = self._media_dir.resolve()
             if not local_path.is_relative_to(allowed_root):
@@ -776,11 +774,9 @@ class TelegramChannel(BaseChannel):
                     local_path,
                 )
             if not local_path.exists():
-                logger.warning(
-                    "telegram: media file not found: %s",
-                    local_path,
+                raise _MediaFileUnavailableError(
+                    f"Media file not found: {local_path}",
                 )
-                return
             file_size = local_path.stat().st_size
             if file_size > TELEGRAM_MAX_FILE_SIZE_BYTES:
                 file_size_mb = file_size / (1024 * 1024)
