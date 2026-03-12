@@ -82,11 +82,13 @@ export default function ModelSelector() {
     if (savingRef.current) return;
     if (providerId === activeProviderId && modelId === activeModelId) {
       setOpen(false);
+      setExpandedProvider(null);
       return;
     }
     savingRef.current = true;
     setSaving(true);
     setOpen(false);
+    setExpandedProvider(null);
     try {
       await providerApi.setActiveLlm({
         provider_id: providerId,

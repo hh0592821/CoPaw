@@ -170,20 +170,23 @@ function CopyButton({ text }: { text: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     };
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(doCopy).catch(() => {});
-    } else {
+    const fallback = () => {
       const textarea = document.createElement("textarea");
       textarea.value = text;
       textarea.style.cssText = "position:fixed;left:-9999px";
       document.body.appendChild(textarea);
       textarea.select();
       try {
-        document.execCommand("copy");
-        doCopy();
+        const successful = document.execCommand("copy");
+        if (successful) doCopy();
       } finally {
         document.body.removeChild(textarea);
       }
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(doCopy).catch(fallback);
+    } else {
+      fallback();
     }
   }, [text]);
 
