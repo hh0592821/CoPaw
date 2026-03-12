@@ -6,7 +6,6 @@ import {
   Modal,
   Spin,
   Tooltip,
-  message,
   type MenuProps,
 } from "antd";
 import { useState, useEffect, useCallback } from "react";
@@ -37,11 +36,9 @@ import {
   Copy,
   Check,
   BarChart3,
-  Bot,
 } from "lucide-react";
 import api from "../api";
 import styles from "./index.module.less";
-import { useTheme } from "../contexts/ThemeContext";
 
 const { Sider } = Layout;
 
@@ -64,7 +61,6 @@ const KEY_TO_PATH: Record<string, string> = {
   tools: "/tools",
   mcp: "/mcp",
   workspace: "/workspace",
-  agents: "/agents",
   models: "/models",
   environments: "/environments",
   "agent-config": "/agent-config",
@@ -179,18 +175,10 @@ function CopyButton({ text }: { text: string }) {
       textarea.value = text;
       textarea.style.cssText = "position:fixed;left:-9999px";
       document.body.appendChild(textarea);
-      textarea.focus();
       textarea.select();
-      textarea.setSelectionRange(0, textarea.value.length);
       try {
         const successful = document.execCommand("copy");
-        if (successful) {
-          doCopy();
-        } else {
-          message.error(t("common.copyFailed"));
-        }
-      } catch {
-        message.error(t("common.copyFailed"));
+        if (successful) doCopy();
       } finally {
         document.body.removeChild(textarea);
       }
@@ -200,7 +188,7 @@ function CopyButton({ text }: { text: string }) {
     } else {
       fallback();
     }
-  }, [text, t]);
+  }, [text]);
 
   return (
     <Tooltip
@@ -222,7 +210,6 @@ function CopyButton({ text }: { text: string }) {
 export default function Sidebar({ selectedKey }: SidebarProps) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { isDark } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [openKeys, setOpenKeys] = useState<string[]>(DEFAULT_OPEN_KEYS);
   const [version, setVersion] = useState<string>("");
@@ -368,7 +355,6 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
       label: t("nav.settings"),
       icon: <Cpu size={16} />,
       children: [
-        { key: "agents", label: t("nav.agents"), icon: <Bot size={16} /> },
         { key: "models", label: t("nav.models"), icon: <Box size={16} /> },
         {
           key: "environments",
@@ -394,16 +380,12 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
       collapsed={collapsed}
       onCollapse={setCollapsed}
       width={275}
-      className={`${styles.sider}${isDark ? ` ${styles.siderDark}` : ""}`}
+      className={styles.sider}
     >
       <div className={styles.siderTop}>
         {!collapsed && (
           <div className={styles.logoWrapper}>
-            <img
-              src={isDark ? "/dark-logo.png" : "/logo.png"}
-              alt="CoPaw"
-              className={styles.logoImg}
-            />
+            <img src="/logo.png" alt="CoPaw" className={styles.logoImg} />
             {version && (
               <Badge dot={!!hasUpdate} color="red" offset={[4, 18]}>
                 <span
@@ -444,7 +426,6 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
           if (path) navigate(path);
         }}
         items={menuItems}
-        theme={isDark ? "dark" : "light"}
       />
 
       <Modal
@@ -460,13 +441,12 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
           <Button
             key="releases"
             type="primary"
-            onClick={() => {
-              const websiteLang = i18n.language?.startsWith("zh") ? "zh" : "en";
+            onClick={() =>
               window.open(
-                `https://copaw.agentscope.io/release-notes?lang=${websiteLang}`,
+                "https://github.com/agentscope-ai/CoPaw/releases",
                 "_blank",
-              );
-            }}
+              )
+            }
             className={styles.updateModalPrimaryBtn}
           >
             {t("sidebar.updateModal.viewReleases")}

@@ -12,7 +12,6 @@
   //   border: 1px solid rgba(0, 0, 0, 0.08);
   //   background: #fff;
   transition: all 0.15s ease;
-  -webkit-user-select: none;
   user-select: none;
   max-width: 260px;
 
@@ -48,7 +47,7 @@
 /* ---- Level-1 panel ---- */
 .panel {
   min-width: 220px;
-  max-height: min(420px, 80vh);
+  max-height: 420px;
   overflow-y: auto;
   border-radius: 12px;
   background: #fff;
@@ -158,72 +157,4 @@
 .spinWrapper {
   padding: 14px 16px;
   text-align: center;
-}
-
-/* ─── Dark mode overrides ─────────────────────────────────────────────────── */
-:global(.dark-mode) {
-  .trigger {
-    color: rgba(255, 255, 255, 0.85);
-
-    &:hover,
-    &.triggerActive {
-      color: #8b87f0;
-      box-shadow: 0 2px 8px rgba(97, 92, 237, 0.2);
-    }
-  }
-
-  .triggerArrow {
-    color: rgba(255, 255, 255, 0.3);
-
-    &.triggerArrowOpen {
-      color: #8b87f0;
-    }
-  }
-
-  .panel {
-    background: #1f1f1f;
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  }
-
-  .providerItem {
-    color: rgba(255, 255, 255, 0.85);
-
-    &:hover {
-      background: rgba(97, 92, 237, 0.15);
-      color: #8b87f0;
-    }
-  }
-
-  .providerArrow {
-    color: rgba(255, 255, 255, 0.2);
-  }
-
-  .submenu {
-    background: #1f1f1f;
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  }
-
-  .modelItem {
-    color: rgba(255, 255, 255, 0.85);
-
-    &:hover {
-      background: rgba(97, 92, 237, 0.15);
-      color: #8b87f0;
-    }
-
-    &.modelItemActive {
-      background: rgba(97, 92, 237, 0.18);
-      color: #8b87f0;
-    }
-  }
-
-  .checkIcon {
-    color: #8b87f0;
-  }
-
-  .emptyTip {
-    color: rgba(255, 255, 255, 0.25);
-  }
 }

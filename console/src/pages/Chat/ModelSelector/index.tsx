@@ -123,23 +123,12 @@ export default function ModelSelector() {
               <div
                 className={[
                   styles.providerItem,
-                  isProviderActive && styles.providerItemActive,
-                  isExpanded && styles.providerItemExpanded,
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                role="button"
-                tabIndex={0}
-                aria-expanded={isExpanded ? "true" : "false"}
+                  isProviderActive ? styles.providerItemActive : "",
+                  isExpanded ? styles.providerItemExpanded : "",
+                ].join(" ")}
                 onClick={() =>
                   setExpandedProvider(isExpanded ? null : provider.id)
                 }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setExpandedProvider(isExpanded ? null : provider.id);
-                  }
-                }}
               >
                 <span className={styles.providerName}>{provider.name}</span>
                 <DownOutlined
