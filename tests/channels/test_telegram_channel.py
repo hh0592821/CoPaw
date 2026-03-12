@@ -39,13 +39,18 @@ async def test_build_content_parts_wraps_media_in_file_url() -> None:
         "copaw.app.channels.telegram.channel._download_telegram_file",
         new=AsyncMock(side_effect=["/tmp/photo.jpg", "/tmp/doc.txt"]),
     ):
-        parts, has_bot_command = await _build_content_parts_from_message(
+        (
+            parts,
+            has_bot_command,
+            is_bot_mentioned,
+        ) = await _build_content_parts_from_message(
             update,
             bot=MagicMock(),
             media_dir=Path("/tmp"),
         )
 
     assert has_bot_command is False
+    assert is_bot_mentioned is False
     assert parts[1].type == ContentType.IMAGE
     assert parts[1].image_url == "file:///tmp/photo.jpg"
     assert parts[2].type == ContentType.FILE
@@ -68,7 +73,11 @@ async def test_build_content_parts_ignores_non_content_message() -> None:
     )
     update = SimpleNamespace(message=message, edited_message=None)
 
-    parts, has_bot_command = await _build_content_parts_from_message(
+    (
+        parts,
+        has_bot_command,
+        is_bot_mentioned,
+    ) = await _build_content_parts_from_message(
         update,
         bot=MagicMock(),
         media_dir=Path("/tmp"),
@@ -76,6 +85,7 @@ async def test_build_content_parts_ignores_non_content_message() -> None:
 
     assert parts == []
     assert has_bot_command is False
+    assert is_bot_mentioned is False
 
 
 def test_message_meta_includes_message_thread_id() -> None:
