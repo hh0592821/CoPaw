@@ -574,6 +574,7 @@ async def test_send_media_os_error_sends_error_message() -> None:
     bot.send_message.assert_called_once()
     error_text = bot.send_message.await_args.kwargs["text"]
     assert "failed" in error_text.lower()
+    assert "Permission denied" in error_text
 
 
 @pytest.mark.asyncio
@@ -662,3 +663,88 @@ async def test_send_chunks_markdown_before_html_conversion() -> None:
         assert (
             open_tags == close_tags
         ), f"Mismatched <b> tags in chunk: {chunk_text!r}"
+
+
+@pytest.mark.asyncio
+async def test_send_media_file_not_found_sends_error_message(
+    tmp_path,
+) -> None:
+    """When a local file does not exist, send_media notifies the user."""
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir=str(tmp_path),
+    )
+    bot = SimpleNamespace(
+        send_document=AsyncMock(),
+        send_message=AsyncMock(),
+    )
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    nonexistent = tmp_path / "nonexistent_file_abc123.pdf"
+    part = FileContent(
+        type=ContentType.FILE,
+        file_url=nonexistent.as_uri(),
+    )
+
+    with patch("pathlib.Path.exists", return_value=False):
+        await channel.send_media(
+            "chat-1",
+            part,
+            meta={"chat_id": "chat-1"},
+        )
+
+    # The file must NOT be uploaded
+    bot.send_document.assert_not_called()
+    # A user-facing error message must be sent
+    bot.send_message.assert_called_once()
+    error_text = bot.send_message.await_args.kwargs["text"]
+    assert "not found" in error_text.lower()
+
+
+@pytest.mark.asyncio
+async def test_send_media_unresolvable_url_sends_error_message(
+    tmp_path,
+) -> None:
+    """When a file:// URL cannot be resolved, send_media notifies the user."""
+    channel = TelegramChannel(
+        process=MagicMock(),
+        enabled=True,
+        bot_token="token",
+        http_proxy="",
+        http_proxy_auth="",
+        bot_prefix="",
+        media_dir=str(tmp_path),
+    )
+    bot = SimpleNamespace(
+        send_document=AsyncMock(),
+        send_message=AsyncMock(),
+    )
+    # pylint: disable=protected-access
+    channel._application = cast(Any, SimpleNamespace(bot=bot))
+    some_file = tmp_path / "some_file.pdf"
+    part = FileContent(
+        type=ContentType.FILE,
+        file_url=some_file.as_uri(),
+    )
+
+    with patch(
+        "copaw.app.channels.telegram.channel.file_url_to_local_path",
+        return_value=None,
+    ):
+        await channel.send_media(
+            "chat-1",
+            part,
+            meta={"chat_id": "chat-1"},
+        )
+
+    # The file must NOT be uploaded
+    bot.send_document.assert_not_called()
+    # A user-facing error message must be sent
+    bot.send_message.assert_called_once()
+    error_text = bot.send_message.await_args.kwargs["text"]
+    assert "could not resolve" in error_text.lower()
