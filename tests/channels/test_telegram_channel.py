@@ -17,7 +17,6 @@ from copaw.app.channels.telegram.channel import (
     TelegramChannel,
     _build_content_parts_from_message,
     _message_meta,
-    _MediaFileUnavailableError,
 )
 
 
