@@ -47,7 +47,9 @@ logger = logging.getLogger(__name__)
 
 TELEGRAM_MAX_MESSAGE_LENGTH = 4096
 TELEGRAM_SEND_CHUNK_SIZE = 4000
-TELEGRAM_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB – Telegram bot upload limit
+TELEGRAM_MAX_FILE_SIZE_BYTES = (
+    50 * 1024 * 1024
+)  # 50 MB – Telegram bot upload limit
 
 _DEFAULT_MEDIA_DIR = Path("~/.copaw/media/telegram").expanduser()
 _TYPING_TIMEOUT_S = 180
@@ -153,7 +155,9 @@ async def _build_content_parts_from_message(
         return [], False, False
 
     content_parts: list[Any] = []
-    text = (getattr(message, "text", None) or getattr(message, "caption") or "").strip()
+    text = (
+        getattr(message, "text", None) or getattr(message, "caption") or ""
+    ).strip()
 
     entities = (
         getattr(message, "entities", None)
@@ -433,7 +437,8 @@ class TelegramChannel(BaseChannel):
     ) -> tuple[bool, list[Any]]:
         """Process media-only Telegram messages without waiting for text."""
         has_media = any(
-            getattr(part, "type", None) not in (ContentType.TEXT, ContentType.REFUSAL)
+            getattr(part, "type", None)
+            not in (ContentType.TEXT, ContentType.REFUSAL)
             for part in content_parts
         )
         if has_media:
