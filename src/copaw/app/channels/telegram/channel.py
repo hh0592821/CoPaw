@@ -49,7 +49,7 @@ TELEGRAM_MAX_MESSAGE_LENGTH = 4096
 TELEGRAM_SEND_CHUNK_SIZE = 4000
 TELEGRAM_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB – Telegram bot upload limit
 
-_DEFAULT_MEDIA_DIR = Path("~/.copaw/media/telegram").expanduser()
+_DEFAULT_MEDIA_DIR = WORKING_DIR / "media" / "telegram"
 _TYPING_TIMEOUT_S = 180
 
 _RECONNECT_INITIAL_S = 2.0
@@ -274,6 +274,7 @@ class TelegramChannel(BaseChannel):
         on_reply_sent: OnReplySent = None,
         show_tool_details: bool = True,
         media_dir: str = "",
+        workspace_dir: Path | None = None,
         show_typing: bool = True,
         filter_tool_messages: bool = False,
         filter_thinking: bool = False,
@@ -302,6 +303,9 @@ class TelegramChannel(BaseChannel):
         self.bot_prefix = bot_prefix
         self._media_dir = (
             Path(media_dir).expanduser() if media_dir else _DEFAULT_MEDIA_DIR
+        )
+        self._workspace_dir = (
+            Path(workspace_dir).expanduser() if workspace_dir else None
         )
         self._show_typing = show_typing
         self._typing_tasks: dict[str, asyncio.Task] = {}
@@ -480,6 +484,7 @@ class TelegramChannel(BaseChannel):
         show_tool_details: bool = True,
         filter_tool_messages: bool = False,
         filter_thinking: bool = False,
+        workspace_dir: Path | None = None,
     ) -> "TelegramChannel":
         if isinstance(config, dict):
             c = config
@@ -504,6 +509,7 @@ class TelegramChannel(BaseChannel):
             show_tool_details=show_tool_details,
             filter_tool_messages=filter_tool_messages,
             filter_thinking=filter_thinking,
+            workspace_dir=workspace_dir,
             show_typing=show_typing,
             dm_policy=c.get("dm_policy") or "open",
             group_policy=c.get("group_policy") or "open",
@@ -779,7 +785,11 @@ class TelegramChannel(BaseChannel):
                     "Could not resolve media file from URL.",
                 )
             local_path = Path(raw_path).resolve()
-            allowed_root = (WORKING_DIR / "media").resolve()
+            allowed_root = (
+                (self._workspace_dir / "media").resolve()
+                if self._workspace_dir
+                else (WORKING_DIR / "media").resolve()
+            )
             if not local_path.is_relative_to(allowed_root):
                 logger.error(
                     "telegram: blocked media outside allowed directory: %s",
