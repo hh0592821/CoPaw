@@ -99,7 +99,6 @@ export default function ModelSelector() {
 
   const handleOpenChange = useCallback(async (next: boolean) => {
     setOpen(next);
-    if (!next) setExpandedProvider(null);
     if (next) {
       // Re-fetch active model every time the dropdown opens
       try {
