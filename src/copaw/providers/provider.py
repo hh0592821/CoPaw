@@ -89,9 +89,7 @@ class Provider(ProviderInfo, ABC):
         timeout: float = 10,  # pylint: disable=unused-argument
     ) -> tuple[bool, str]:
         """Add a model to the provider's model list."""
-        if model_info.id in {
-            model.id for model in self.models + self.extra_models
-        }:
+        if model_info.id in {model.id for model in self.models + self.extra_models}:
             return False, f"Model '{model_info.id}' already exists"
         if target == "extra_models":
             self.extra_models.append(model_info)
@@ -122,7 +120,9 @@ class Provider(ProviderInfo, ABC):
             and config["base_url"] is not None
         ):
             self.base_url = str(config["base_url"])
-        if "api_key" in config and config["api_key"] is not None:
+        # Only update api_key if new value is provided and non-empty
+        # This preserves existing key when user leaves the field empty
+        if "api_key" in config and config["api_key"]:
             self.api_key = str(config["api_key"])
         if (
             self.is_custom
@@ -157,9 +157,7 @@ class Provider(ProviderInfo, ABC):
 
     def has_model(self, model_id: str) -> bool:
         """Check if the provider has a model with the given ID."""
-        return any(
-            model.id == model_id for model in self.models + self.extra_models
-        )
+        return any(model.id == model_id for model in self.models + self.extra_models)
 
     @abstractmethod
     def get_chat_model_instance(self, model_id: str) -> ChatModelBase:
