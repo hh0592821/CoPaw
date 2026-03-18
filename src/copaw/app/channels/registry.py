@@ -31,7 +31,7 @@ _BUILTIN_SPECS: dict[str, tuple[str, str]] = {
     "voice": (".voice", "VoiceChannel"),
     "wecom": (".wecom", "WecomChannel"),
     "xiaoyi": (".xiaoyi", "XiaoYiChannel"),
-    "browser-plugin": (".browser", "BrowserChannel"),
+    "browser_plugin": (".browser", "BrowserChannel"),
 }
 
 # Required channels must load; failures are raised, not skipped.

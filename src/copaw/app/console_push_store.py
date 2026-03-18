@@ -4,6 +4,7 @@
 Bounded: at most _MAX_MESSAGES kept; messages older than _MAX_AGE_SECONDS
 are dropped when reading. Frontend dedupes by id and caps its seen set.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -68,15 +69,27 @@ def _strip_ts(msgs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 async def get_recent(
+    session_id: str = None,
     max_age_seconds: int = _MAX_AGE_SECONDS,
 ) -> List[Dict[str, Any]]:
     """
     Return recent messages (not consumed). Drop older than max_age_seconds
     from store to bound memory.
+
+    Args:
+        session_id: Optional session ID to filter messages
+        max_age_seconds: Maximum age of messages to return
     """
     now = time.time()
     cutoff = now - max_age_seconds
     async with _lock:
-        out = [m for m in _list if m["ts"] >= cutoff]
+        if session_id:
+            out = [
+                m
+                for m in _list
+                if m["ts"] >= cutoff and m.get("session_id") == session_id
+            ]
+        else:
+            out = [m for m in _list if m["ts"] >= cutoff]
         _list[:] = out
         return _strip_ts(out)

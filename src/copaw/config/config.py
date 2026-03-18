@@ -193,7 +193,11 @@ class ChannelConfig(BaseModel):
     voice: VoiceChannelConfig = VoiceChannelConfig()
     wecom: WecomConfig = WecomConfig()
     xiaoyi: XiaoYiConfig = XiaoYiConfig()
-    browser_plugin: BrowserPluginConfig = BrowserPluginConfig()
+    browser_plugin: BrowserPluginConfig = Field(
+        default_factory=BrowserPluginConfig,
+        validation_alias="browser-plugin",
+        serialization_alias="browser-plugin",
+    )
 
 
 class LastApiConfig(BaseModel):

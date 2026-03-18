@@ -31,7 +31,7 @@ class BrowserChannel(BaseChannel):
     - user_id: "browser-user"
     """
 
-    channel = "browser-plugin"
+    channel = "browser_plugin"
     uses_manager_queue = True
 
     # Global shared session identifiers

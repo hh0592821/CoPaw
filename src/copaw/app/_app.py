@@ -194,6 +194,9 @@ async def lifespan(
             default_agent.channel_manager,
         )
 
+        # Expose channel_manager to browser router
+        app.state.channel_manager = default_agent.channel_manager
+
     startup_elapsed = time.time() - startup_start_time
     logger.debug(
         f"Application startup completed in {startup_elapsed:.3f} seconds",

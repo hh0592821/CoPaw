@@ -48,12 +48,12 @@ async def send_message(
     Returns:
         StreamingResponse with SSE events
     """
-    ch = await manager.get_channel("browser-plugin")
+    ch = await manager.get_channel("browser_plugin")
 
     if not ch:
         raise HTTPException(
             status_code=404,
-            detail="browser-plugin channel not enabled",
+            detail="browser_plugin channel not enabled",
         )
 
     # Convert to native payload format
@@ -113,7 +113,7 @@ async def get_messages(
 
     # Use global session if not specified
     if session_id is None:
-        session_id = "browser-plugin:global"
+        session_id = "browser_plugin:global"
 
     messages = await get_recent(session_id)
     return {"messages": messages, "session_id": session_id}
