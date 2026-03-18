@@ -62,9 +62,7 @@ class EnvVarLoader:
 
 
 WORKING_DIR = (
-    Path(EnvVarLoader.get_str("COPAW_WORKING_DIR", "~/.copaw-browser"))
-    .expanduser()
-    .resolve()
+    Path(EnvVarLoader.get_str("COPAW_WORKING_DIR", "~/.copaw")).expanduser().resolve()
 )
 SECRET_DIR = (
     Path(

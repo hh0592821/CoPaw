@@ -44,37 +44,8 @@ def _normalize_working_dir_bound_paths(data: object) -> object:
     def _rewrite_path_value(v: object) -> object:
         if not isinstance(v, str) or not v:
             return v
-        # Fix corrupted paths from previous buggy normalizations
-        # (e.g., .copaw-browser-browser-browser...)
-        if "browser-browser" in v:
-            v = re.sub(r"\.copaw-browser+(?:-browser+)*", ".copaw-browser", v)
-            return v
-        # Check new_root_abs first to avoid self-replacement
-        # (e.g., ~/.copaw-browser should not match ~/.copaw prefix)
-        if v.startswith(new_root_abs):
-            return v
-        if v.startswith(legacy_root_tilde):
-            # Ensure exact prefix match with path separator
-            remainder = v[len(legacy_root_tilde) :]
-            if (
-                not remainder
-                or remainder.startswith("/")
-                or remainder.startswith(
-                    "\\",
-                )
-            ):
-                return new_root_abs + remainder
-        if v.startswith(legacy_root_abs):
-            # Ensure exact prefix match with path separator
-            remainder = v[len(legacy_root_abs) :]
-            if (
-                not remainder
-                or remainder.startswith("/")
-                or remainder.startswith(
-                    "\\",
-                )
-            ):
-                return new_root_abs + remainder
+        # No normalization needed when WORKING_DIR is ~/.copaw (default)
+        # Just return the value as-is
         return v
 
     def _walk(obj: object, key: str | None = None) -> object:
