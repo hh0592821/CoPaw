@@ -35,6 +35,8 @@ def _normalize_working_dir_bound_paths(data: object) -> object:
     "/Users/x/.copaw/workspaces/...".
     Only rewrites known working-dir-bound keys.
     """
+    import re
+
     legacy_root_tilde = "~/.copaw"
     legacy_root_abs = str(Path(legacy_root_tilde).expanduser().resolve())
     new_root_abs = str(WORKING_DIR)
@@ -42,10 +44,37 @@ def _normalize_working_dir_bound_paths(data: object) -> object:
     def _rewrite_path_value(v: object) -> object:
         if not isinstance(v, str) or not v:
             return v
+        # Fix corrupted paths from previous buggy normalizations
+        # (e.g., .copaw-browser-browser-browser...)
+        if "browser-browser" in v:
+            v = re.sub(r"\.copaw-browser+(?:-browser+)*", ".copaw-browser", v)
+            return v
+        # Check new_root_abs first to avoid self-replacement
+        # (e.g., ~/.copaw-browser should not match ~/.copaw prefix)
+        if v.startswith(new_root_abs):
+            return v
         if v.startswith(legacy_root_tilde):
-            return new_root_abs + v[len(legacy_root_tilde) :]
+            # Ensure exact prefix match with path separator
+            remainder = v[len(legacy_root_tilde) :]
+            if (
+                not remainder
+                or remainder.startswith("/")
+                or remainder.startswith(
+                    "\\",
+                )
+            ):
+                return new_root_abs + remainder
         if v.startswith(legacy_root_abs):
-            return new_root_abs + v[len(legacy_root_abs) :]
+            # Ensure exact prefix match with path separator
+            remainder = v[len(legacy_root_abs) :]
+            if (
+                not remainder
+                or remainder.startswith("/")
+                or remainder.startswith(
+                    "\\",
+                )
+            ):
+                return new_root_abs + remainder
         return v
 
     def _walk(obj: object, key: str | None = None) -> object:
@@ -85,8 +114,7 @@ def _discover_system_chromium_path() -> Optional[str]:
             ),
             Path("/Applications/Chromium.app/Contents/MacOS/Chromium"),
             Path(
-                "/Applications/Microsoft Edge.app/Contents/MacOS/"
-                "Microsoft Edge",
+                "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
             ),
         ]
     else:
@@ -170,9 +198,7 @@ def _get_darwin_default_browser() -> Tuple[Optional[str], Optional[str]]:
     """
     result: Tuple[Optional[str], Optional[str]] = (None, None)
     pref = "~/Library/Preferences"
-    plist_name = (
-        "com.apple.LaunchServices.com.apple.launchservices.secure.plist"
-    )
+    plist_name = "com.apple.LaunchServices.com.apple.launchservices.secure.plist"
     plist_path = Path(os.path.expanduser(pref)) / plist_name
     if not plist_path.is_file():
         return result
