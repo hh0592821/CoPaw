@@ -33,25 +33,23 @@ a69b79f feat(browser): add browser-plugin channel for web extension integration
 
 ---
 
-### ⏳ Phase 1.2: API 端点实现 (进行中)
+### ✅ Phase 1.2: API 端点实现 (完成 100%)
 
-**待完成**:
-- [ ] 创建 `src/copaw/app/routers/schemas_browser.py` - API 请求 schemas
-- [ ] 创建 `src/copaw/app/routers/browser.py` - API endpoints
-  - [ ] `POST /api/browser/message` - 发送消息，返回 SSE 流
-  - [ ] `GET /api/browser/messages` - 轮询获取消息
-- [ ] 更新 `src/copaw/app/routers/__init__.py` - 导入 browser_router
-- [ ] 更新 `src/copaw/app/_app.py` - 包含 browser_router (如果需要)
-- [ ] 测试 API 端点
-- [ ] Git 提交
+- [x] 创建 `src/copaw/app/routers/schemas_browser.py` - API 请求 schemas
+- [x] 创建 `src/copaw/app/routers/browser.py` - API endpoints
+  - [x] `POST /api/browser/message` - 发送消息，返回 SSE 流
+  - [x] `GET /api/browser/messages` - 轮询获取消息
+- [x] 更新 `src/copaw/app/routers/__init__.py` - 导入 browser_router
+- [x] Git 提交并推送
 
-**参考文档**:
-- `/Users/huanghong/git/Copaw-Browser/PHASE1_IMPLEMENTATION.md`
-- `/Users/huanghong/git/Copaw-Browser/QUICK_REFERENCE.md`
+**Git 提交**:
+```
+72a933d feat(browser): add API endpoints for browser-plugin channel
+```
 
 ---
 
-### ⏳ Phase 1.3: CORS 配置增强 (待办)
+### ⏳ Phase 1.3: CORS 配置增强 (进行中)
 
 - [ ] 更新 `src/copaw/app/_app.py` - 增强 CORS 中间件配置
 - [ ] 默认允许浏览器扩展 origins
@@ -71,12 +69,11 @@ a69b79f feat(browser): add browser-plugin channel for web extension integration
 
 ## 📝 下一步行动
 
-**立即执行**: Phase 1.2 - API 端点实现
+**立即执行**: Phase 1.3 - CORS 配置增强
 
-1. 创建 API schemas
-2. 实现 API endpoints
-3. 更新 routers/__init__.py
-4. 测试并提交
+1. 更新 `_app.py` 中的 CORS 中间件配置
+2. 默认允许浏览器扩展 origins
+3. 测试并提交
 
 ---
 
@@ -100,10 +97,10 @@ a69b79f feat(browser): add browser-plugin channel for web extension integration
 | 阶段 | 状态 | 完成度 |
 |------|------|--------|
 | Phase 1.1: Channel 核心 | ✅ 完成 | 100% |
-| Phase 1.2: API 端点 | ⏳ 进行中 | 0% |
+| Phase 1.2: API 端点 | ✅ 完成 | 100% |
 | Phase 1.3: CORS 配置 | ⏳ 待办 | 0% |
 | Phase 1.4: 测试验证 | ⏳ 待办 | 0% |
-| **Phase 1 总计** | ⏳ 进行中 | **25%** |
+| **Phase 1 总计** | ⏳ 进行中 | **50%** |
 
 ---
 
