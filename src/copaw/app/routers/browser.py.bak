@@ -70,18 +70,15 @@ async def send_message(
     async def event_generator():
         try:
             async for event in ch._process(agent_request):
-                # Use model_dump() to serialize all fields properly
-                if hasattr(event, "model_dump"):
-                    event_dict = event.model_dump(mode="json", exclude_none=True)
-                else:
-                    event_dict = {}
-                    for attr in ["object", "status", "type", "data", "text", "index", "msg_id"]:
-                        val = getattr(event, attr, None)
-                        if val is not None:
-                            if hasattr(val, "model_dump"):
-                                event_dict[attr] = val.model_dump()
-                            else:
-                                event_dict[attr] = val
+                # Convert event to JSON
+                event_dict = {}
+                for attr in ["object", "status", "type", "data"]:
+                    val = getattr(event, attr, None)
+                    if val is not None:
+                        if hasattr(val, "model_dump"):
+                            event_dict[attr] = val.model_dump()
+                        else:
+                            event_dict[attr] = val
                 yield f"data: {json.dumps(event_dict)}\n\n"
         except Exception as e:
             logger.exception("browser message processing failed")
