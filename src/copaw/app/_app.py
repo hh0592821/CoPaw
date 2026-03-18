@@ -77,8 +77,7 @@ class DynamicMultiAgentRunner:
         try:
             workspace = await self._multi_agent_manager.get_agent(agent_id)
             logger.debug(
-                f"Got workspace: {workspace.agent_id}, "
-                f"runner: {workspace.runner}",
+                f"Got workspace: {workspace.agent_id}, runner: {workspace.runner}",
             )
             return workspace.runner
         except ValueError as e:
@@ -230,13 +229,22 @@ app.add_middleware(AuthMiddleware)
 # Apply CORS middleware if CORS_ORIGINS is set
 if CORS_ORIGINS:
     origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+else:
+    # Default origins: allow browser extensions and local development
+    origins = [
+        "chrome-extension://*",
+        "moz-extension://*",
+        "edge-extension://*",
+        "http://localhost:*",
+        "http://127.0.0.1:*",
+    ]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Console static dir: env, or copaw package data (console), or cwd.
