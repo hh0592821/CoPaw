@@ -118,8 +118,9 @@ a69b79f feat(browser): add browser-plugin channel for web extension integration
 | Phase 1.1: Channel 核心 | ✅ 完成 | 100% |
 | Phase 1.2: API 端点 | ✅ 完成 | 100% |
 | Phase 1.3: CORS 配置 | ✅ 完成 | 100% |
+| Phase 1.3.5: 工作目录配置 | ✅ 完成 | 100% |
 | Phase 1.4: 测试验证 | ⏳ 进行中 | 0% |
-| **Phase 1 总计** | ⏳ 进行中 | **75%** |
+| **Phase 1 总计** | ⏳ 进行中 | **80%** |
 
 ---
 
