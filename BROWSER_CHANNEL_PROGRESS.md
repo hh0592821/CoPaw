@@ -116,6 +116,34 @@ INFO | Uvicorn running on http://0.0.0.0:8088
 
 ---
 
+### ✅ Phase 1.5: 配置保存问题修复 (完成 100%)
+
+- [x] 发现路径重复问题 (`~/.copaw-browser-browser/...`)
+- [x] 修复 `_normalize_working_dir_bound_paths` 函数
+- [x] 添加前缀检查避免自我替换
+- [x] 修复已损坏的路径
+- [x] 测试验证配置可以正常保存
+- [x] Git 提交并推送
+
+**问题根源**:
+- 路径规范化逻辑错误导致每次保存/加载循环都会重复 `-browser` 后缀
+- 使用 `startswith()` 检查时未区分新旧路径
+
+**修复方案**:
+- 优先检查新路径前缀，避免自我替换
+- 添加正则表达式修复已损坏的路径
+- 使用路径分隔符确保正确的前缀匹配
+
+**测试结果**:
+```
+✅ config.json media_dir: /Users/huanghong/.copaw-browser/workspaces/default/media
+✅ agent.json media_dir: /Users/huanghong/.copaw-browser/workspaces/default/media
+✅ 服务重启后路径不再重复
+✅ Web Console 配置可以正常保存
+```
+
+---
+
 ## ✅ Phase 1: 完成！(100%)
 
 ### 项目文档
@@ -140,6 +168,7 @@ INFO | Uvicorn running on http://0.0.0.0:8088
 | Phase 1.3: CORS 配置 | ✅ 完成 | 100% |
 | Phase 1.3.5: 工作目录配置 | ✅ 完成 | 100% |
 | Phase 1.4: 测试验证 | ✅ 完成 | 100% |
+| Phase 1.5: 配置修复 | ✅ 完成 | 100% |
 | **Phase 1 总计** | ✅ **完成** | **100%** |
 
 ---
