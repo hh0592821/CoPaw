@@ -49,15 +49,25 @@ a69b79f feat(browser): add browser-plugin channel for web extension integration
 
 ---
 
-### ⏳ Phase 1.3: CORS 配置增强 (进行中)
+### ✅ Phase 1.3: CORS 配置增强 (完成 100%)
 
-- [ ] 更新 `src/copaw/app/_app.py` - 增强 CORS 中间件配置
-- [ ] 默认允许浏览器扩展 origins
-- [ ] 测试 CORS 配置
+- [x] 更新 `src/copaw/app/_app.py` - 增强 CORS 中间件配置
+- [x] 默认允许浏览器扩展 origins
+  - [x] `chrome-extension://*`
+  - [x] `moz-extension://*`
+  - [x] `edge-extension://*`
+  - [x] `http://localhost:*`
+  - [x] `http://127.0.0.1:*`
+- [x] Git 提交并推送
+
+**Git 提交**:
+```
+4179722 feat(browser): enhance CORS configuration for browser extensions
+```
 
 ---
 
-### ⏳ Phase 1.4: 测试验证 (待办)
+### ⏳ Phase 1.4: 测试验证 (进行中)
 
 - [ ] 启动 CoPaw 测试 browser channel
 - [ ] 测试 POST /api/browser/message
@@ -69,11 +79,14 @@ a69b79f feat(browser): add browser-plugin channel for web extension integration
 
 ## 📝 下一步行动
 
-**立即执行**: Phase 1.3 - CORS 配置增强
+**立即执行**: Phase 1.4 - 测试验证
 
-1. 更新 `_app.py` 中的 CORS 中间件配置
-2. 默认允许浏览器扩展 origins
-3. 测试并提交
+1. 启动 CoPaw 测试 browser channel
+2. 测试 POST /api/browser/message
+3. 测试 GET /api/browser/messages
+4. 检查日志输出
+5. 验证 SSE 流式响应
+6. 更新进度并提交
 
 ---
 
@@ -98,9 +111,9 @@ a69b79f feat(browser): add browser-plugin channel for web extension integration
 |------|------|--------|
 | Phase 1.1: Channel 核心 | ✅ 完成 | 100% |
 | Phase 1.2: API 端点 | ✅ 完成 | 100% |
-| Phase 1.3: CORS 配置 | ⏳ 待办 | 0% |
-| Phase 1.4: 测试验证 | ⏳ 待办 | 0% |
-| **Phase 1 总计** | ⏳ 进行中 | **50%** |
+| Phase 1.3: CORS 配置 | ✅ 完成 | 100% |
+| Phase 1.4: 测试验证 | ⏳ 进行中 | 0% |
+| **Phase 1 总计** | ⏳ 进行中 | **75%** |
 
 ---
 
