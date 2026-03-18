@@ -144,6 +144,33 @@ INFO | Uvicorn running on http://0.0.0.0:8088
 
 ---
 
+### 🔄 Phase 1.6: 回滚工作目录修改 (完成 100%)
+
+由于配置保存问题，决定回滚工作目录修改：
+
+- [x] 恢复 `WORKING_DIR` 默认值为 `~/.copaw`
+- [x] 简化 `_normalize_working_dir_bound_paths` 函数
+- [x] 移除路径规范化逻辑
+- [x] 重启服务验证
+- [x] 配置保存功能正常
+
+**原因**:
+- `~/.copaw-browser` 工作目录导致配置保存问题
+- 路径规范化逻辑过于复杂，容易出错
+- 保持默认 `~/.copaw` 更稳定
+
+**结果**:
+- ✅ 服务运行在 `~/.copaw`
+- ✅ API key 可以正常保存
+- ✅ 配置不会再出现路径重复问题
+
+**提交**:
+```
+2653106 revert: change default working directory back to ~/.copaw
+```
+
+---
+
 ## ✅ Phase 1: 完成！(100%)
 
 ### 项目文档
