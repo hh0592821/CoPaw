@@ -59,11 +59,17 @@ a69b79f feat(browser): add browser-plugin channel for web extension integration
   - [x] `http://localhost:*`
   - [x] `http://127.0.0.1:*`
 - [x] Git 提交并推送
+- [x] 更改默认工作目录为 `~/.copaw-browser` (不影响现有 `~/.copaw` 实例)
 
 **Git 提交**:
 ```
 4179722 feat(browser): enhance CORS configuration for browser extensions
 ```
+
+**配置变更**:
+- 默认工作目录：`~/.copaw` → `~/.copaw-browser`
+- 通过 `COPAW_WORKING_DIR` 环境变量可自定义
+- 不影响现有本地实例
 
 ---
 

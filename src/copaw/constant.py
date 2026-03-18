@@ -31,9 +31,7 @@ class EnvVarLoader:
                 return min_value
             if max_value is not None and value > max_value:
                 return max_value
-            if not allow_inf and (
-                value == float("inf") or value == float("-inf")
-            ):
+            if not allow_inf and (value == float("inf") or value == float("-inf")):
                 return default
             return value
         except (TypeError, ValueError):
@@ -64,7 +62,7 @@ class EnvVarLoader:
 
 
 WORKING_DIR = (
-    Path(EnvVarLoader.get_str("COPAW_WORKING_DIR", "~/.copaw"))
+    Path(EnvVarLoader.get_str("COPAW_WORKING_DIR", "~/.copaw-browser"))
     .expanduser()
     .resolve()
 )
