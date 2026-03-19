@@ -8,6 +8,7 @@ Extends ReMeLight to provide memory management capabilities including:
 - Vector and full-text search integration
 - Embedding configuration from environment variables
 """
+
 import asyncio
 import logging
 import os
@@ -42,6 +43,10 @@ except ImportError as e:
 
         async def start(self) -> None:
             """No-op start when reme is unavailable."""
+
+        def get_in_memory_memory(self, **_kwargs):
+            """Placeholder implementation."""
+            return ""
 
 
 class MemoryManager(ReMeLight):
@@ -334,6 +339,10 @@ class MemoryManager(ReMeLight):
         Returns:
             The in-memory memory content with token counting support
         """
-        return super().get_in_memory_memory(
-            as_token_counter=self.token_counter,
-        )
+        try:
+            return super().get_in_memory_memory(
+                as_token_counter=self.token_counter,
+            )
+        except TypeError:
+            # Fallback for older ReMeLight versions
+            return super().get_in_memory_memory()
